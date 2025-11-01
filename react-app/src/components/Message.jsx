@@ -1,5 +1,4 @@
-// src/components/Message.jsx (Nouveau Fichier)
-
+// src/components/Message.jsx
 import React from 'react';
 
 export const Message = ({ content, type }) => {

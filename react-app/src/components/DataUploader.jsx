@@ -1,5 +1,4 @@
 // src/components/DataUploader.jsx
-
 import React, { useState } from 'react';
 
 export const DataUploader = ({ onDataLoad }) => {
@@ -17,7 +16,7 @@ export const DataUploader = ({ onDataLoad }) => {
         if (!allowedExtensions.includes(fileExtension)) {
             setError(`Format .${fileExtension} non standard, mais l'équipe d'IA est flexible. Tentative de chargement...`);
         } else {
-             setError(null);
+            setError(null);
         }
 
         setFileName(file.name);
@@ -25,7 +24,7 @@ export const DataUploader = ({ onDataLoad }) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             const rawContent = e.target.result;
-            // Transmet le contenu brut (avec balises si HTML/XML) et l'extension
+            // Transmet le contenu brut (qui sera directement envoyé à S3) et l'extension
             onDataLoad(rawContent, fileExtension); 
         };
         reader.onerror = () => {

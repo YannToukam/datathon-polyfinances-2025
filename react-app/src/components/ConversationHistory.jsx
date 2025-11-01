@@ -1,5 +1,4 @@
-// src/components/ConversationHistory.jsx (Nouveau Fichier)
-
+// src/components/ConversationHistory.jsx
 import React, { useRef, useEffect } from 'react';
 import { Message } from './Message';
 
