@@ -1,5 +1,3 @@
-// src/components/PromptInput.jsx
-
 import React, { useState } from 'react';
 
 export const PromptInput = ({ onSubmit, isLoading }) => { 
