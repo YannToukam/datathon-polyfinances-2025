@@ -1,0 +1,137 @@
+/* src/styles/components.css (DARK THEME) */
+
+/* ------------------- DATA UPLOADER ------------------- */
+
+.data-uploader {
+    background-color: var(--color-card-bg);
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    border: 2px dashed #333; /* Bordure plus claire */
+    text-align: center;
+}
+
+.uploader-label {
+    /* Couleur reste vive pour l'accentuation */
+    display: block;
+    cursor: pointer;
+    background-color: var(--color-primary);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+    font-weight: 600;
+}
+
+.uploader-label:hover {
+    background-color: #2563eb;
+}
+
+.data-uploader input[type="file"] {
+    display: none;
+}
+
+.file-info {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+.error-message {
+    color: var(--color-error);
+    font-size: 0.85rem;
+    margin-top: 10px;
+}
+
+/* ------------------- PROMPT INPUT ------------------- */
+
+.prompt-input {
+    display: flex;
+    gap: 10px;
+    margin-top: auto; 
+}
+
+.prompt-input textarea {
+    flex-grow: 1;
+    padding: 15px;
+    border: 1px solid #444; /* Bordure sombre */
+    background-color: #282828; /* Fond du champ de saisie */
+    color: var(--color-text);
+    border-radius: 6px;
+    resize: none;
+    font-size: 1rem;
+    min-height: 50px;
+}
+
+.prompt-input button {
+    /* Garde la couleur d'action primaire */
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+    min-width: 120px;
+}
+
+.prompt-input button:hover:not(:disabled) {
+    background-color: #2563eb;
+}
+
+.prompt-input button:disabled {
+    background-color: #555; /* Désactivé sombre */
+    cursor: not-allowed;
+}
+
+/* ------------------- CONVERSATION HISTORY & MESSAGE ------------------- */
+
+.conversation-history-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+    margin-bottom: 15px;
+}
+
+.conversation-history-empty {
+    text-align: center;
+    color: var(--color-text-secondary);
+    padding-top: 50px;
+}
+
+/* ... (Style des messages individuels non modifié) ... */
+
+/* Contenu du message (texte de l'utilisateur ou réponse de l'IA) */
+.message-content pre {
+    padding: 15px;
+    border-radius: 8px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit; 
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 0;
+    /* Bordures plus douces pour le Dark Mode */
+    border: 1px solid #333; 
+}
+
+/* Style Utilisateur */
+.message-user .message-type-label {
+    color: var(--color-primary);
+}
+.message-user pre {
+    /* Fond de message utilisateur sombre */
+    background-color: #282828; 
+    border-color: #444;
+}
+
+/* Style Modèle IA */
+.message-model .message-type-label {
+    color: var(--color-success);
+}
+.message-model pre {
+    /* Fond de message modèle (légèrement plus clair que l'utilisateur, mais toujours sombre) */
+    background-color: #222; 
+    border-color: #383838;
+}
