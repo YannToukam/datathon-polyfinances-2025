@@ -3,14 +3,12 @@ import React, { useRef, useEffect } from 'react';
 import { Message } from './Message';
 
 export const ConversationHistory = ({ history }) => {
-    // Référence pour maintenir le défilement en bas (auto-scroll)
     const endOfMessagesRef = useRef(null);
 
     const scrollToBottom = () => {
         endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    // Défile vers le bas chaque fois que l'historique est mis à jour
     useEffect(scrollToBottom, [history]);
 
     if (history.length === 0) {
