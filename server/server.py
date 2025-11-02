@@ -45,14 +45,6 @@ except Exception as e:
             CreateBucketConfiguration={'LocationConstraint': S3_REGION}
         )
 
-
-
-
-
-
-
-
-
 # --- Lazy Loader : télécharge uniquement les fichiers pertinents ---
 def download_relevant_files(user_prompt, bucket, local_dir, max_files=5):
     """
