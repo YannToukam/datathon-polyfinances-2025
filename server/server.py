@@ -3,6 +3,9 @@ from flask import Flask, request, jsonify
 import json
 from flask_cors import CORS
 import boto3
+import random
+from urllib.request import urlretrieve
+import os
 
 # Configuration AWS
 S3_REGION = "us-west-2" 
@@ -20,13 +23,67 @@ CORS(app)
 # Nécessaire pour envoyer des fichiers volumineux dans le corps JSON
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 # ---------------------
+
 # Create boto3 clients for AOSS, Bedrock, and S3 services
 aoss_client = boto3.client('opensearchserverless')
 bedrock_agent_client = boto3.client('bedrock-agent')
 s3_client = boto3.client('s3')
 
+# Define names for AOSS, Bedrock, and S3 resources
+resource_suffix = random.randrange(100, 999)
+s3_bucket_name = "rag-data-pf-2025"
+aoss_collection_name = f"bedrock-kb-collection-{resource_suffix}"
+aoss_index_name = f"bedrock-kb-index-{resource_suffix}"
+bedrock_kb_name = f"bedrock-kb-{resource_suffix}"
+
+# Set the Bedrock model to use for embedding generation
+embedding_model_id = 'amazon.titan-embed-text-v2:0'
+embedding_model_arn = f'arn:aws:bedrock:{S3_REGION}::foundation-model/{embedding_model_id}'
+embedding_model_dim = 1024
+
+# Print configurations
+print("AWS Region:", S3_REGION)
+print("S3 Bucket:", s3_bucket_name)
+print("AOSS Collection Name:", aoss_collection_name)
+print("Bedrock Knowledge Base Name:", bedrock_kb_name)
 
 
+# Check if bucket exists, and if not create S3 bucket for KB data source
+try:
+    s3_client.head_bucket(Bucket=s3_bucket_name)
+    print(f"Bucket '{s3_bucket_name}' already exists..")
+except Exception as e:
+    print(f"Creating bucket: '{s3_bucket_name}'..")
+    if S3_REGION == 'us-west-2':
+        s3_client.create_bucket(Bucket=s3_bucket_name)
+    else:
+        s3_client.create_bucket(
+            Bucket=s3_bucket_name,
+            CreateBucketConfiguration={'LocationConstraint': S3_REGION}
+        )
+        
+local_data_dir = "datathon-polyfinances-2025/server/data"
+
+response = s3_client.list_objects_v2(Bucket=s3_bucket_name)
+contents = response.get('Contents', [])
+test_data = contents[0]['Key'] if contents else None
+print(test_data)
+
+'''
+# Download each file and print confirmation
+for url, filename in zip(urls, filenames):
+    file_path = os.path.join(local_data_dir, filename)
+    urlretrieve(url, file_path)
+    print(f"Downloaded: '{filename}' to '{local_data_dir}'..")
+'''
+
+'''
+for root, _, files in os.walk(local_data_dir):
+    for file in files:
+        full_path = os.path.join(root, file)
+        s3_client.upload_file(full_path, s3_bucket_name, file)
+        print(f"Uploaded: '{file}' to 's3://{s3_bucket_name}'..")
+'''
 
 @app.route("/chat", methods=["POST"])
 def chat():
