@@ -8,6 +8,15 @@ import tempfile
 import datetime
 import re
 
+from api_news import apiNews
+from api_reddit import apiReddit
+from api_x import apiX
+
+# --- CREATION API ---
+news = apiNews()
+reddit = apiReddit()
+x = apiX()
+
 # --- CONFIGURATION AWS ---
 S3_REGION = "us-west-2"
 bedrock_client = boto3.client(
@@ -58,9 +67,14 @@ def download_relevant_files(user_prompt, bucket, local_dir, max_files=5):
     }
     keywords += [english_fallback.get(k, k) for k in keywords]
 
+    news.setKeywords(keywords)
+    reddit.setKeywords(keywords)
+    reddit.setSubreddits(keywords)
+    x.setKeywords("".join(keywords))
+
     objects = s3_client.list_objects_v2(Bucket=bucket)
     downloaded = 0
-    fallback_files = ["reddit", "x.json", "analysis", "regulation", "act", "directive"]
+    fallback_files = ["reddit", "x.json", "analysis", "regulation", "act", "directive", "news"]
 
     for obj in objects.get("Contents", []):
         key = obj["Key"]
@@ -101,12 +115,11 @@ def get_context_from_local_files(user_query, max_files=3):
     local_dir = "./data"
     context_snippets = []
     matched_files = []
-
     keywords = [w.lower() for w in user_query.split() if len(w) > 3]
-
+    
     for root, _, files in os.walk(local_dir):
         for file in files:
-            if file.endswith((".txt", ".html", ".xml", ".csv")):
+            if file.endswith((".txt", ".html", ".xml", ".csv", ".json")):
                 file_path = os.path.join(root, file)
                 try:
                     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
@@ -204,8 +217,11 @@ def send_to_bucket(file_content, file_extension):
 
             s3_url = f"s3://{s3_bucket_name}/{file_key}"
             print(f"✅ Fichier uploadé : {s3_url}")
+            return s3_url
         except Exception as e:
             return jsonify({"response": f"[Erreur S3] {e}"}), 500
+    else:
+        return None
 
 # --- ROUTE CHAT ---
 @app.route("/chat", methods=["POST"])
@@ -220,10 +236,8 @@ def chat():
     file_content = data.get("file_content")
     file_extension = data.get("file_extension")
 
-    s3_url = None
-
     # --- Étape 1 : upload d’un éventuel fichier utilisateur ---
-    send_to_bucket(file_content, file_extension)
+    s3_url = send_to_bucket(file_content, file_extension)
 
     # --- Étape 2 : Lazy loading & RAG ---
     download_relevant_files(user_prompt, s3_bucket_name, local_data_dir)

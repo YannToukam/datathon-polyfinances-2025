@@ -27,8 +27,6 @@ class apiReddit:
 
     def getPosts(self):
         text = []
-        self.subreddits = ["ChatGPT"]
-        self.keywords = ["LLM"]
         for subreddit_name in self.subreddits:
             subreddit = self.reddit.subreddit(subreddit_name)
             for keyword in self.keywords:

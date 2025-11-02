@@ -35,6 +35,9 @@ class apiNews:
                     break
         return "".join(all_text)
 
+    def setKeywords(self, keywords):
+        self.keywords = keywords
+
 if __name__ == "__main__":
     news = apiNews(keywords=["S&P 500", "inflation", "economic policy"])
     text = news.getRecentNews(days=5, max_articles=5)
@@ -44,5 +47,5 @@ if __name__ == "__main__":
         f.write(text)
 
     helper = Helper()
-    helper.sendDataToBucket(source="eventregistry", file_path=file_name)
+    helper.sendDataToBucket(source="news", file_path=file_name)
     os.remove(file_name)

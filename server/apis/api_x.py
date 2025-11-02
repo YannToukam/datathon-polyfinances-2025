@@ -29,6 +29,9 @@ class apiX:
         data = response.json()
 
         return data
+    
+    def setKeywords(self, keywords):
+        self.keywords = keywords
 
 if __name__ == "__main__":
     x = apiX()
