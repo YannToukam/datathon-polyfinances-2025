@@ -127,23 +127,7 @@ def get_context_from_local_files(user_query, max_files=3):
         print("❌ Aucun contexte pertinent trouvé.")
     return "\n\n".join(context_snippets), matched_files
 
-
-# --- ROUTE CHAT ---
-@app.route("/chat", methods=["POST"])
-def chat():
-    """Reçoit le prompt utilisateur et appelle le modèle Bedrock."""
-    try:
-        data = request.get_json()
-    except Exception as e:
-        return jsonify({"response": f"[Erreur JSON] {e}"}), 413
-
-    user_prompt = data.get("prompt", "")
-    file_content = data.get("file_content")
-    file_extension = data.get("file_extension")
-
-    s3_url = None
-
-    # --- Étape 1 : upload d’un éventuel fichier utilisateur ---
+def upload_to_bucket(file_content, file_extension):
     if file_content:
         try:
             timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -160,6 +144,24 @@ def chat():
             print(f"✅ Fichier uploadé : {s3_url}")
         except Exception as e:
             return jsonify({"response": f"[Erreur S3] {e}"}), 500
+        
+# --- ROUTE CHAT ---
+@app.route("/chat", methods=["POST"])
+def chat():
+    """Reçoit le prompt utilisateur et appelle le modèle Bedrock."""
+    try:
+        data = request.get_json()
+    except Exception as e:
+        return jsonify({"response": f"[Erreur JSON] {e}"}), 413
+
+    user_prompt = data.get("prompt", "")
+    file_content = data.get("file_content")
+    file_extension = data.get("file_extension")
+
+    s3_url = None
+
+    # --- Étape 1 : upload d’un éventuel fichier utilisateur ---
+    upload_to_bucket(file_content=file_content, file_extension=file_extension)
 
     # --- Étape 2 : Lazy loading & RAG ---
     download_relevant_files(user_prompt, s3_bucket_name, local_data_dir)
