@@ -44,6 +44,7 @@
 
 .prompt-input {
   display: flex;
+  align-items: center;
   gap: 10px;
   margin-top: auto;
 }
@@ -60,16 +61,19 @@
   min-height: 50px;
 }
 
+/* Send / attach buttons */
 .prompt-input button {
   background-color: var(--color-primary);
   color: white;
   border: none;
-  padding: 10px 20px;
+  padding: 10px;
   border-radius: 6px;
   cursor: pointer;
   font-weight: bold;
   transition: background-color 0.2s;
-  min-width: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .prompt-input button:hover:not(:disabled) {
@@ -79,6 +83,20 @@
 .prompt-input button:disabled {
   background-color: #555;
   cursor: not-allowed;
+}
+
+/* Attach icon button */
+.attach-button {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  transition: color 0.2s;
+}
+
+.attach-button:hover {
+  color: var(--color-primary);
 }
 
 /* ------------------- CONVERSATION HISTORY ------------------- */

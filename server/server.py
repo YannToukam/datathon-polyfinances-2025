@@ -73,7 +73,7 @@ os.makedirs(local_data_dir, exist_ok=True)
 # ------------------------
 # Smart S3 Downloader
 # ------------------------
-objects = s3_client.list_objects_v2(Bucket=s3_bucket_name)
+"""objects = s3_client.list_objects_v2(Bucket=s3_bucket_name)
 for obj in objects.get('Contents', []):
     key = obj['Key']
 
@@ -85,7 +85,7 @@ for obj in objects.get('Contents', []):
     local_path = os.path.join(local_data_dir, filename)
 
     s3_client.download_file(s3_bucket_name, key, local_path)
-    print(f"X Downloaded '{filename}' → '{local_path}'")
+    print(f"X Downloaded '{filename}' → '{local_path}'")"""
 
 @app.route("/chat", methods=["POST"])
 def chat():
