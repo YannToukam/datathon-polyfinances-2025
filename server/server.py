@@ -197,6 +197,23 @@ def test_aoss():
     except Exception as e:
         return jsonify({"error": str(e)})
 
+def send_to_bucket(file_content, file_extension):
+    if file_content:
+        try:
+            timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+            file_key = f"uploads/{timestamp}.{file_extension or 'txt'}"
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension or 'txt'}") as tmp:
+                tmp.write(file_content.encode("utf-8"))
+                tmp_path = tmp.name
+
+            s3_client.upload_file(tmp_path, s3_bucket_name, file_key)
+            os.remove(tmp_path)
+
+            s3_url = f"s3://{s3_bucket_name}/{file_key}"
+            print(f"✅ Fichier uploadé : {s3_url}")
+        except Exception as e:
+            return jsonify({"response": f"[Erreur S3] {e}"}), 500
 
 # --- ROUTE CHAT ---
 @app.route("/chat", methods=["POST"])
@@ -214,22 +231,7 @@ def chat():
     s3_url = None
 
     # --- Étape 1 : upload d’un éventuel fichier utilisateur ---
-    if file_content:
-        try:
-            timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-            file_key = f"uploads/{timestamp}.{file_extension or 'txt'}"
-
-            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension or 'txt'}") as tmp:
-                tmp.write(file_content.encode("utf-8"))
-                tmp_path = tmp.name
-
-            s3_client.upload_file(tmp_path, s3_bucket_name, file_key)
-            os.remove(tmp_path)
-
-            s3_url = f"s3://{s3_bucket_name}/{file_key}"
-            print(f"✅ Fichier uploadé : {s3_url}")
-        except Exception as e:
-            return jsonify({"response": f"[Erreur S3] {e}"}), 500
+    send_to_bucket(file_content, file_extension)
 
     # --- Étape 2 : Lazy loading & RAG ---
     download_relevant_files(user_prompt, s3_bucket_name, local_data_dir)
