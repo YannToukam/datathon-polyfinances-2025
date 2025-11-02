@@ -66,10 +66,11 @@ except Exception as e:
         
 local_data_dir = "./data"
 
-
 os.makedirs(local_data_dir, exist_ok=True)
 
-filename = ''
+# ------------------------
+# Smart S3 Downloader
+# ------------------------
 objects = s3_client.list_objects_v2(Bucket=s3_bucket_name)
 for obj in objects.get('Contents', []):
     key = obj['Key']
@@ -82,39 +83,7 @@ for obj in objects.get('Contents', []):
     local_path = os.path.join(local_data_dir, filename)
 
     s3_client.download_file(s3_bucket_name, key, local_path)
-    print(f"Downloaded '{filename}' → '{local_path}'")
-
-
-
-
-
-
-
-
-'''
-key = "reddit/reddit.txt"
-response = s3_client.list_objects_v2(Bucket=s3_bucket_name)
-contents = response.get('Contents', [])
-test_data = contents[0]['Key'] if contents else None
-s3_client.download_file(s3_bucket_name, key, local_data_dir)
-print("okk")
-'''
-
-'''
-# Download each file and print confirmation
-for url, filename in zip(urls, filenames):
-    file_path = os.path.join(local_data_dir, filename)
-    urlretrieve(url, file_path)
-    print(f"Downloaded: '{filename}' to '{local_data_dir}'..")
-'''
-
-'''
-for root, _, files in os.walk(local_data_dir):
-    for file in files:
-        full_path = os.path.join(root, file)
-        s3_client.upload_file(full_path, s3_bucket_name, file)
-        print(f"Uploaded: '{file}' to 's3://{s3_bucket_name}'..")
-'''
+    print(f"X Downloaded '{filename}' → '{local_path}'")
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -168,10 +137,39 @@ def chat():
 
     model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
     llm_mission = "You are a helpful assistant specialized in business data interpretation."
+    system_prompt = (
+    "You are 'Regulus', an AI Regulatory Intelligence Analyst designed for financial decision support.\n"
+    "You have access to documents stored on Amazon S3 — including regulations, company filings, Reddit and X comments, "
+    "and market news enriched via AWS Comprehend. Your task is to retrieve, interpret, and integrate this context "
+    "to produce concise, explainable, and economically relevant insights for portfolio management.\n\n"
+
+    "Follow this reasoning pipeline:\n"
+    "1. Retrieve relevant data from S3 based on the user's question.\n"
+    "2. Summarize key entities, sectors, and regulations mentioned.\n"
+    "3. Assess the potential financial impact on S&P 500 constituents.\n"
+    "4. Generate clear, structured recommendations (rotation, reallocation, replacements).\n"
+    "5. Output your findings strictly as a JSON object with the following keys:\n\n"
+
+    "{\n"
+    "  'summary': 'Concise explanation of the regulation or market sentiment',\n"
+    "  'entities': ['List of companies, sectors, or regions impacted'],\n"
+    "  'impact_score': 'Float from 0 (neutral) to 1 (critical)',\n"
+    "  'impact_reasoning': '2-3 sentences explaining why these entities are affected',\n"
+    "  'recommendations': ['Concrete portfolio actions (sector rotation, reallocation, etc.)'],\n"
+    "  'confidence': '0–1 measure of model confidence',\n"
+    "  'sources': ['List of S3 object keys or source summaries used']\n"
+    "}\n\n"
+
+    "Constraints:\n"
+    "- Never hallucinate companies or events not found in S3 or Comprehend data.\n"
+    "- Cite data provenance explicitly (mention which S3 or news item informed the result).\n"
+    "- Keep the tone professional, concise, and explainable for financial analysts.\n"
+    "- The final output must always be valid JSON parsable by JavaScript.")
     payload = {
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": 4096,
         "temperature": 0.5,
+        "system" : system_prompt,
         "messages": [
             {
                 "role": "user",
