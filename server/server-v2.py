@@ -3,10 +3,23 @@ import json
 from flask_cors import CORS
 import boto3
 import random
+from urllib.request import urlretrieve
 import os
 import tempfile
 import datetime
 import re
+
+
+# --- Embeddings Titan (demo locale) ---
+def get_titan_embedding(text: str):
+    """Crée un embedding 1024-dim avec Titan pour n'importe quel texte."""
+    response = bedrock_client.invoke_model(
+        modelId="amazon.titan-embed-text-v2:0",
+        body=json.dumps({"inputText": text})
+    )
+    result = json.loads(response["body"].read())
+    return result["embedding"]  # liste de 1024 floats
+
 
 # --- CONFIGURATION AWS ---
 S3_REGION = "us-west-2"
@@ -24,6 +37,7 @@ CORS(app)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 Mo max
 
 # --- VARIABLES ---
+resource_suffix = random.randrange(100, 999)
 s3_bucket_name = "rag-data-pf-2025"
 local_data_dir = "./data"
 os.makedirs(local_data_dir, exist_ok=True)
@@ -31,7 +45,7 @@ os.makedirs(local_data_dir, exist_ok=True)
 print("AWS Region:", S3_REGION)
 print("S3 Bucket:", s3_bucket_name)
 
-# --- Vérifie ou crée le bucket ---
+# --- S3 SYNC ---
 try:
     s3_client.head_bucket(Bucket=s3_bucket_name)
     print(f"✅ Bucket '{s3_bucket_name}' already exists.")
@@ -45,12 +59,25 @@ except Exception as e:
             CreateBucketConfiguration={'LocationConstraint': S3_REGION}
         )
 
+# Télécharger tous les fichiers S3 vers ./data
+"""objects = s3_client.list_objects_v2(Bucket=s3_bucket_name)
+for obj in objects.get('Contents', []):
+    key = obj['Key']
+    if key.endswith('/'):
+        continue
+    filename = key.split('/')[-1]
+    local_path = os.path.join(local_data_dir, filename)
+    s3_client.download_file(s3_bucket_name, key, local_path)
+    print(f"📥 Downloaded '{filename}' → '{local_path}'")"""
+
 # --- Lazy Loader : télécharge uniquement les fichiers pertinents ---
+# --- Lazy Loader amélioré : ne télécharge que les fichiers pertinents ---
 def download_relevant_files(user_prompt, bucket, local_dir, max_files=5):
     """
     Télécharge seulement les fichiers dont le nom contient un mot clé du prompt.
-    Si aucun mot ne correspond, télécharge quelques fichiers généraux (fallback).
+    Si aucun mot ne correspond, télécharge quelques fichiers généraux (ex: reddit, regulation, news).
     """
+    # Liste de mots-clés du prompt + versions anglaises
     keywords = [w.lower() for w in user_prompt.split() if len(w) > 3]
     english_fallback = {
         "chine": "china", "énergie": "energy", "régulation": "regulation",
@@ -80,6 +107,7 @@ def download_relevant_files(user_prompt, bucket, local_dir, max_files=5):
 
     if downloaded == 0:
         print("⚠️ Aucun fichier correspondant trouvé dans S3. Téléchargement de fichiers de secours...")
+        # Télécharge par défaut quelques fichiers utiles
         for obj in objects.get("Contents", []):
             if any(f in obj["Key"].lower() for f in fallback_files):
                 filename = obj["Key"].split('/')[-1]
@@ -92,16 +120,21 @@ def download_relevant_files(user_prompt, bucket, local_dir, max_files=5):
                     break
 
 
+
+
+
+
 # --- CONTEXTE LOCAL (RAG) ---
 def get_context_from_local_files(user_query, max_files=3):
     """
-    Parcourt ./data pour trouver les fichiers contenant des mots du prompt utilisateur.
-    Retourne le texte extrait et la liste des sources utilisées.
+    Parcourt le dossier ./data pour trouver des fichiers contenant des mots du prompt utilisateur.
+    Retourne un texte concaténé pour enrichir le contexte du modèle.
     """
     local_dir = "./data"
     context_snippets = []
     matched_files = []
 
+    # Découpe la requête en mots-clés simples
     keywords = [w.lower() for w in user_query.split() if len(w) > 3]
 
     for root, _, files in os.walk(local_dir):
@@ -113,8 +146,7 @@ def get_context_from_local_files(user_query, max_files=3):
                         text = f.read()
                         if any(kw in text.lower() for kw in keywords):
                             snippet = text[:1500]
-                            # ✅ Ajout de la provenance réelle
-                            context_snippets.append(f"[Source: {file}]\n{snippet}")
+                            context_snippets.append(snippet)
                             matched_files.append(file)
                             print(f"✅ Fichier pertinent trouvé : {file}")
                             if len(context_snippets) >= max_files:
@@ -125,7 +157,7 @@ def get_context_from_local_files(user_query, max_files=3):
 
     if not matched_files:
         print("❌ Aucun contexte pertinent trouvé.")
-    return "\n\n".join(context_snippets), matched_files
+    return "\n\n".join(context_snippets)
 
 
 # --- ROUTE CHAT ---
@@ -161,109 +193,48 @@ def chat():
         except Exception as e:
             return jsonify({"response": f"[Erreur S3] {e}"}), 500
 
-    # --- Étape 2 : Lazy loading & RAG ---
+    # --- Étape 2 : RAG (recherche de contexte local) ---
     download_relevant_files(user_prompt, s3_bucket_name, local_data_dir)
-    context_text, sources = get_context_from_local_files(user_prompt)
 
+    context_text = get_context_from_local_files(user_prompt)
     if context_text:
         llm_prompt = (
             f"Relevant context extracted from S3 documents:\n{context_text}\n\n"
-            f"User question: {user_prompt}\n\n"
-            f"Available S3 sources: {sources}"
+            f"User question: {user_prompt}"
         )
         print("📚 Contexte enrichi ajouté au prompt.")
     else:
         llm_prompt = user_prompt
         print("⚠️ Aucun contexte ajouté.")
 
-    # --- Étape 3 : Appel Bedrock ---
+    # --- Étape 3 : Appel au modèle Bedrock ---
     model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
-
     system_prompt = (
-"You are 'Regulus v3', a Regulatory & Market Intelligence Co-Pilot for financial analysis teams.\n\n"
-
-"MISSION\n"
-"Analyze regulatory, financial, and social data to extract decision-ready insights for S&P 500 portfolio management.\n"
-"You are allowed to use ONLY the content explicitly provided in the user input or S3-referenced documents.\n"
-"If no evidence is given, respond with placeholders and state clearly that data is missing.\n\n"
-
-"---\n\n"
-"🎯 OBJECTIVE\n"
-"Generate concise, source-grounded, and interpretable insights about:\n"
-"- Regulatory developments and their financial implications,\n"
-"- Sectoral risk and opportunity analysis,\n"
-"- Market sentiment shifts,\n"
-"- Comparative views between jurisdictions (EU, US, CN).\n\n"
-
-"---\n\n"
-"⚙️ INPUT CONTEXT\n"
-"You may receive text excerpts from:\n"
-"- Regulatory texts (laws, directives, acts),\n"
-"- Financial filings (10-K, ESG reports),\n"
-"- Market commentary (Reddit, X),\n"
-"- News articles or press releases.\n\n"
-"If the user does NOT provide any of these sources, you MUST NOT infer or invent any facts.\n"
-"Instead, write: 'No data provided — additional source required.'\n\n"
-
-"---\n\n"
-"📊 STRICT OUTPUT FORMAT (JSON only)\n"
-"{\n"
-'  "summary": "Brief synthesis (2-3 sentences, or \'No data provided.\')",\n'
-'  "entities": {\n'
-'    "companies": ["..."],\n'
-'    "sectors": ["..."],\n'
-'    "countries": ["..."]\n'
-"  },\n"
-'  "jurisdictions": ["EU","US","CN","JP", "..."],\n'
-'  "regulation_details": {\n'
-'    "law_name": "string or null",\n'
-'    "type": "string (\'tax\', \'subsidy\', \'restriction\', \'disclosure\', etc.)",\n'
-'    "application_date": "YYYY-MM-DD or null",\n'
-'    "description": "short summary or \'No data.\'"\n'
-"  },\n"
-'  "regulatory_risk": {\n'
-'    "score": 0.0-1.0,\n'
-'    "drivers": ["top 3 factors raising the risk"],\n'
-'    "mitigations": ["top 3 mitigating elements"]\n'
-"  },\n"
-'  "market_mood": {\n'
-'    "reddit": {"score": -1..1, "n": int},\n'
-'    "x": {"score": -1..1, "n": int},\n'
-'    "blend": -1..1,\n'
-'    "interpretation": "1-2 sentences summarizing overall market tone or \'No data.\'"\n'
-"  },\n"
-'  "comparative_view": {\n'
-'    "dimension": "compliance_cost | incentives | data_obligations | carbon",\n'
-'    "EU_vs_US": "contrast or \'No data.\'",\n'
-'    "EU_vs_CN": "contrast or \'No data.\'",\n'
-'    "US_vs_CN": "contrast or \'No data.\'"\n'
-"  },\n"
-'  "impact_estimation": {\n'
-'    "magnitude": -1.0..1.0,\n'
-'    "confidence": 0.0..1.0\n'
-"  },\n"
-'  "recommendations": ["Actionable suggestions or \'Not enough evidence.\'"],\n'
-'  "sources": [\n'
-'    {"s3_key": "bucket/key", "snippet": "<=200 chars explaining relevance"}\n'
-"  ]\n"
-"}\n\n"
-
-"---\n\n"
-"🔒 CONSTRAINTS\n"
-"- Do NOT hallucinate. Use only facts supported by explicit input or S3 content.\n"
-"- If no evidence exists, return neutral placeholders ('null', 'No data', '0.0', etc.).\n"
-"- Each cited file in 'sources' MUST correspond to a real provided key.\n"
-"- Never generate imaginary S3 keys or external URLs.\n"
-"- Keep tone professional, factual, and investment-oriented.\n\n"
-
-"---\n\n"
-"💡 STYLE GUIDELINES\n"
-"- Short declarative sentences.\n"
-"- Quantify wherever possible.\n"
-"- Explain causal links ('due to tax reform', 'driven by subsidy incentives').\n"
-"- Output must be clean, valid JSON, parsable without post-processing.\n"
-)
-
+        "You are 'Regulus', an AI Regulatory Intelligence Analyst designed for financial decision support.\n"
+        "You have access to documents stored on Amazon S3 — including regulations, company filings, Reddit and X comments, "
+        "and market news enriched via AWS Comprehend. Your task is to retrieve, interpret, and integrate this context "
+        "to produce concise, explainable, and economically relevant insights for portfolio management.\n\n"
+        "Follow this reasoning pipeline:\n"
+        "1. Retrieve relevant data from S3 based on the user's question.\n"
+        "2. Summarize key entities, sectors, and regulations mentioned.\n"
+        "3. Assess the potential financial impact on S&P 500 constituents.\n"
+        "4. Generate clear, structured recommendations (rotation, reallocation, replacements).\n"
+        "5. Output your findings strictly as a JSON object with the following keys:\n\n"
+        "{\n"
+        "  'summary': 'Concise explanation of the regulation or market sentiment',\n"
+        "  'entities': ['List of companies, sectors, or regions impacted'],\n"
+        "  'impact_score': 'Float from 0 (neutral) to 1 (critical)',\n"
+        "  'impact_reasoning': '2-3 sentences explaining why these entities are affected',\n"
+        "  'recommendations': ['Concrete portfolio actions (sector rotation, reallocation, etc.)'],\n"
+        "  'confidence': '0–1 measure of model confidence',\n"
+        "  'sources': ['List of S3 object keys or source summaries used']\n"
+        "}\n\n"
+        "Constraints:\n"
+        "- Never hallucinate companies or events not found in S3 or Comprehend data.\n"
+        "- Cite data provenance explicitly (mention which S3 or news item informed the result).\n"
+        "- Keep the tone professional, concise, and explainable for financial analysts.\n"
+        "- The final output must always be valid JSON parsable by JavaScript."
+    )
 
     payload = {
         "anthropic_version": "bedrock-2023-05-31",
@@ -284,7 +255,7 @@ def chat():
         generated_text = "".join(
             [part["text"] for part in result.get("content", []) if "text" in part]
         )
-        return jsonify({"response": generated_text, "s3_url": s3_url, "sources": sources}), 200
+        return jsonify({"response": generated_text, "s3_url": s3_url}), 200
 
     except Exception as e:
         print(f"❌ Erreur Bedrock: {e}")
@@ -292,6 +263,4 @@ def chat():
 
 
 if __name__ == "__main__":
-    #app.run(debug=True, use_reloader=False)
     app.run(debug=True)
-
