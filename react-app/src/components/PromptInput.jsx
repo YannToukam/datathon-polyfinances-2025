@@ -1,11 +1,11 @@
-// src/components/PromptInput.jsx
 import React, { useState, useRef } from 'react';
-import { FaPaperclip, FaArrowUp, FaTimesCircle } from 'react-icons/fa';
+import { FaArrowUp, FaPaperclip, FaFolder, FaTimes } from 'react-icons/fa';
 
 export const PromptInput = ({ onSubmit, isLoading, onDataLoad, onFileClear }) => {
     const [promptText, setPromptText] = useState('');
     const [fileName, setFileName] = useState('');
     const [error, setError] = useState(null);
+    const [isHovering, setIsHovering] = useState(false);
     const fileInputRef = useRef(null);
 
     const handleSubmit = (e) => {
@@ -21,10 +21,6 @@ export const PromptInput = ({ onSubmit, isLoading, onDataLoad, onFileClear }) =>
             e.preventDefault();
             handleSubmit(e);
         }
-    };
-
-    const handleAttachClick = () => {
-        fileInputRef.current?.click();
     };
 
     const handleFileChange = (event) => {
@@ -66,13 +62,33 @@ export const PromptInput = ({ onSubmit, isLoading, onDataLoad, onFileClear }) =>
                 onChange={handleFileChange}
             />
 
+            {/* Zone d’entrée */}
             <button
                 type="button"
                 className="attach-button"
-                onClick={handleAttachClick}
+                onClick={() => {
+                    if (!fileName) fileInputRef.current?.click();
+                }}
                 disabled={isLoading}
+                onMouseEnter={() => setIsHovering(true)}
+                onMouseLeave={() => setIsHovering(false)}
             >
-                <FaPaperclip style={{ fontSize: '22px' }} />
+                {/* 📎 Trombone par défaut */}
+                {!fileName && <FaPaperclip style={{ fontSize: '20px' }} />}
+
+                {/* 📁 Dossier ou ❌ au survol */}
+                {fileName && (
+                    <>
+                        {!isHovering ? (
+                            <FaFolder style={{ fontSize: '20px', color: 'var(--color-primary)' }} />
+                        ) : (
+                            <FaTimes
+                                onClick={handleClearFile}
+                                style={{ fontSize: '18px', color: '#ff4d4d' }}
+                            />
+                        )}
+                    </>
+                )}
             </button>
 
             <textarea
@@ -87,15 +103,6 @@ export const PromptInput = ({ onSubmit, isLoading, onDataLoad, onFileClear }) =>
             <button type="submit" disabled={!promptText.trim() || isLoading}>
                 {isLoading ? '...' : <FaArrowUp style={{ fontSize: '20px' }} />}
             </button>
-
-            {fileName && (
-                <div className="file-info-bar">
-                    <span>📄 {fileName}</span>
-                    <button type="button" onClick={handleClearFile} className="clear-file-btn">
-                        <FaTimesCircle /> Annuler
-                    </button>
-                </div>
-            )}
 
             {error && <p className="error-message">{error}</p>}
         </form>
