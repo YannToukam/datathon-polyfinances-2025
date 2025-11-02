@@ -1,120 +1,224 @@
-# app.py
 from flask import Flask, request, jsonify
 import json
 from flask_cors import CORS
 import boto3
 import random
-from urllib.request import urlretrieve
 import os
 import tempfile
 import datetime
+import re
 
-
-# Configuration AWS
-S3_REGION = "us-west-2" 
-# Assurez-vous que vos identifiants AWS sont configurés (variables d'environnement, profil, ou rôle IAM)
+# --- CONFIGURATION AWS ---
+S3_REGION = "us-west-2"
 bedrock_client = boto3.client(
     service_name="bedrock-runtime",
-    region_name=S3_REGION  
+    region_name=S3_REGION
 )
+s3_client = boto3.client("s3")
+aoss_client = boto3.client("opensearchserverless")
+bedrock_agent_client = boto3.client("bedrock-agent")
 
+# --- FLASK APP ---
 app = Flask(__name__)
-CORS(app) 
+CORS(app)
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 Mo max
 
-
-# --- AJOUT CRUCIAL ---
-# Augmenter la limite de taille de la requête (16 Mo)
-# Nécessaire pour envoyer des fichiers volumineux dans le corps JSON
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
-# ---------------------
-
-# Create boto3 clients for AOSS, Bedrock, and S3 services
-aoss_client = boto3.client('opensearchserverless')
-bedrock_agent_client = boto3.client('bedrock-agent')
-s3_client = boto3.client('s3')
-
-# Define names for AOSS, Bedrock, and S3 resources
-resource_suffix = random.randrange(100, 999)
+# --- VARIABLES ---
 s3_bucket_name = "rag-data-pf-2025"
-aoss_collection_name = f"bedrock-kb-collection-{resource_suffix}"
-aoss_index_name = f"bedrock-kb-index-{resource_suffix}"
-bedrock_kb_name = f"bedrock-kb-{resource_suffix}"
+local_data_dir = "./data"
+os.makedirs(local_data_dir, exist_ok=True)
 
-# Set the Bedrock model to use for embedding generation
-embedding_model_id = 'amazon.titan-embed-text-v2:0'
-embedding_model_arn = f'arn:aws:bedrock:{S3_REGION}::foundation-model/{embedding_model_id}'
-embedding_model_dim = 1024
-
-# Print configurations
 print("AWS Region:", S3_REGION)
 print("S3 Bucket:", s3_bucket_name)
-print("AOSS Collection Name:", aoss_collection_name)
-print("Bedrock Knowledge Base Name:", bedrock_kb_name)
 
-
-# Check if bucket exists, and if not create S3 bucket for KB data source
+# --- Vérifie ou crée le bucket ---
 try:
     s3_client.head_bucket(Bucket=s3_bucket_name)
-    print(f"Bucket '{s3_bucket_name}' already exists..")
+    print(f"✅ Bucket '{s3_bucket_name}' already exists.")
 except Exception as e:
-    print(f"Creating bucket: '{s3_bucket_name}'..")
-    if S3_REGION == 'us-west-2':
+    print(f"🪣 Creating bucket: {s3_bucket_name}")
+    if S3_REGION == "us-west-2":
         s3_client.create_bucket(Bucket=s3_bucket_name)
     else:
         s3_client.create_bucket(
             Bucket=s3_bucket_name,
             CreateBucketConfiguration={'LocationConstraint': S3_REGION}
         )
-        
-local_data_dir = "./data"
 
-os.makedirs(local_data_dir, exist_ok=True)
 
-# ------------------------
-# Smart S3 Downloader
-# ------------------------
-"""objects = s3_client.list_objects_v2(Bucket=s3_bucket_name)
-for obj in objects.get('Contents', []):
-    key = obj['Key']
 
-    if key.endswith('/'):
-        continue
 
-    filename = key.split('/')[-1]
 
-    local_path = os.path.join(local_data_dir, filename)
 
-    s3_client.download_file(s3_bucket_name, key, local_path)
-    print(f"X Downloaded '{filename}' → '{local_path}'")"""
 
+
+
+# --- Lazy Loader : télécharge uniquement les fichiers pertinents ---
+def download_relevant_files(user_prompt, bucket, local_dir, max_files=5):
+    """
+    Télécharge seulement les fichiers dont le nom contient un mot clé du prompt.
+    Si aucun mot ne correspond, télécharge quelques fichiers généraux (fallback).
+    """
+    keywords = [w.lower() for w in user_prompt.split() if len(w) > 3]
+    english_fallback = {
+        "chine": "china", "énergie": "energy", "régulation": "regulation",
+        "marché": "market", "américain": "us", "loi": "law", "financier": "finance"
+    }
+    keywords += [english_fallback.get(k, k) for k in keywords]
+
+    objects = s3_client.list_objects_v2(Bucket=bucket)
+    downloaded = 0
+    fallback_files = ["reddit", "x.json", "analysis", "regulation", "act", "directive"]
+
+    for obj in objects.get("Contents", []):
+        key = obj["Key"]
+        if key.endswith('/'):
+            continue
+
+        # Cherche un mot clé ou un fallback dans le nom du fichier
+        if any(kw in key.lower() for kw in keywords + fallback_files):
+            filename = key.split('/')[-1]
+            local_path = os.path.join(local_dir, filename)
+            if not os.path.exists(local_path):
+                s3_client.download_file(bucket, key, local_path)
+                print(f"✅ Téléchargé : {filename}")
+                downloaded += 1
+            if downloaded >= max_files:
+                break
+
+    if downloaded == 0:
+        print("⚠️ Aucun fichier correspondant trouvé dans S3. Téléchargement de fichiers de secours...")
+        for obj in objects.get("Contents", []):
+            if any(f in obj["Key"].lower() for f in fallback_files):
+                filename = obj["Key"].split('/')[-1]
+                local_path = os.path.join(local_dir, filename)
+                if not os.path.exists(local_path):
+                    s3_client.download_file(bucket, obj["Key"], local_path)
+                    print(f"📦 Fichier par défaut téléchargé : {filename}")
+                    downloaded += 1
+                if downloaded >= 3:
+                    break
+
+
+# --- CONTEXTE LOCAL (RAG) ---
+def get_context_from_local_files(user_query, max_files=3):
+    """
+    Parcourt ./data pour trouver les fichiers contenant des mots du prompt utilisateur.
+    Retourne le texte extrait et la liste des sources utilisées.
+    """
+    local_dir = "./data"
+    context_snippets = []
+    matched_files = []
+
+    keywords = [w.lower() for w in user_query.split() if len(w) > 3]
+
+    for root, _, files in os.walk(local_dir):
+        for file in files:
+            if file.endswith((".txt", ".html", ".xml", ".csv")):
+                file_path = os.path.join(root, file)
+                try:
+                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                        text = f.read()
+                        if any(kw in text.lower() for kw in keywords):
+                            snippet = text[:1500]
+                            # ✅ Ajout de la provenance réelle
+                            context_snippets.append(f"[Source: {file}]\n{snippet}")
+                            matched_files.append(file)
+                            print(f"✅ Fichier pertinent trouvé : {file}")
+                            if len(context_snippets) >= max_files:
+                                break
+                except Exception as e:
+                    print(f"⚠️ Erreur lecture {file}: {e}")
+                    continue
+
+    if not matched_files:
+        print("❌ Aucun contexte pertinent trouvé.")
+    return "\n\n".join(context_snippets), matched_files
+
+
+from botocore.exceptions import ClientError
+import hashlib
+import numpy as np
+
+def index_legal_document_in_aoss(file_path, index_name="regulations-index"):
+    """
+    Indexe un document législatif dans Amazon OpenSearch Serverless.
+    - Génère un embedding avec Bedrock Titan
+    - Stocke le texte, le titre et l'embedding
+    """
+    try:
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read()[:4000]  # limite tokens
+        doc_id = hashlib.md5(content.encode()).hexdigest()
+
+        # Génère l’embedding via Bedrock Titan
+        embed_payload = {
+            "inputText": content,
+            "modelId": "amazon.titan-embed-text-v1"
+        }
+        response = bedrock_client.invoke_model(
+            modelId="amazon.titan-embed-text-v1",
+            body=json.dumps(embed_payload)
+        )
+        result = json.loads(response["body"].read())
+        embedding = result.get("embedding")
+
+        # Envoie à OpenSearch
+        aoss_client.batch_put_document(
+            collectionName=index_name,
+            documents=[{
+                "id": doc_id,
+                "document": {
+                    "path": file_path,
+                    "text": content[:1000],
+                    "embedding": embedding
+                }
+            }]
+        )
+        print(f"✅ Document indexé dans AOSS : {file_path}")
+    except ClientError as e:
+        print(f"❌ Erreur AOSS : {e}")
+    except Exception as e:
+        print(f"⚠️ Échec indexation : {e}")
+
+@app.route("/test_aoss", methods=["GET"])
+def test_aoss():
+    try:
+        results = aoss_client.search(
+            collectionName="regulations-index",
+            query={"matchAll": {}},
+            size=3
+        )
+        docs = results.get("hits", [])
+        return jsonify({
+            "indexed_docs": len(docs),
+            "sample": [d.get("_source", {}) for d in docs]
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+
+# --- ROUTE CHAT ---
 @app.route("/chat", methods=["POST"])
 def chat():
-    """Reçoit le prompt et le contenu du fichier (si fourni) pour appeler le modèle Bedrock."""
-    
+    """Reçoit le prompt utilisateur et appelle le modèle Bedrock."""
     try:
-        # Tente de récupérer les données JSON (échoue si la requête est trop grosse)
         data = request.get_json()
     except Exception as e:
-        error_message = f"[Erreur JSON] Le corps de la requête est invalide ou dépasse la limite de taille (16 Mo). Erreur: {e}"
-        print(error_message)
-        # Retourne un code 413 (Payload Too Large) si c'est le cas
-        return jsonify({"response": error_message}), 413
-
+        return jsonify({"response": f"[Erreur JSON] {e}"}), 413
 
     user_prompt = data.get("prompt", "")
-    file_content = data.get("file_content") 
+    file_content = data.get("file_content")
     file_extension = data.get("file_extension")
-    llm_prompt = user_prompt
 
     s3_url = None
-    
-    # 1. Construction du prompt final (RAG)
+
+    # --- Étape 1 : upload d’un éventuel fichier utilisateur ---
     if file_content:
         try:
             timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
             file_key = f"uploads/{timestamp}.{file_extension or 'txt'}"
 
-            # Écrire contenu dans un fichier temporaire pour upload_file
             with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension or 'txt'}") as tmp:
                 tmp.write(file_content.encode("utf-8"))
                 tmp_path = tmp.name
@@ -123,87 +227,151 @@ def chat():
             os.remove(tmp_path)
 
             s3_url = f"s3://{s3_bucket_name}/{file_key}"
-            print(f"✅ Fichier envoyé sur S3 : {s3_url}")
-
+            print(f"✅ Fichier uploadé : {s3_url}")
         except Exception as e:
-            error_message = f"[Erreur S3] Impossible d'envoyer le fichier sur S3 : {e}"
-            print(error_message)
-            return jsonify({"response": error_message}), 500
+            return jsonify({"response": f"[Erreur S3] {e}"}), 500
 
-    llm_prompt = user_prompt
-    if file_content:
+    # --- Étape 2 : Lazy loading & RAG ---
+    download_relevant_files(user_prompt, s3_bucket_name, local_data_dir)
+    # --- Étape 2.5 : Indexation des fichiers téléchargés dans OpenSearch Serverless ---
+    for root, _, files in os.walk(local_data_dir):
+        for file in files:
+            if file.endswith((".txt", ".html", ".xml")):
+                file_path = os.path.join(root, file)
+                try:
+                    index_legal_document_in_aoss(file_path)
+                except Exception as e:
+                    print(f"⚠️ Impossible d’indexer {file_path} : {e}")
+
+    context_text, sources = get_context_from_local_files(user_prompt)
+
+    if context_text:
         llm_prompt = (
-            f"Voici un fichier stocké à l'adresse {s3_url}.\n"
-            f"Basé sur ce document, réponds à la question suivante : {user_prompt}"
+            f"Relevant context extracted from S3 documents:\n{context_text}\n\n"
+            f"User question: {user_prompt}\n\n"
+            f"Available S3 sources: {sources}"
         )
+        print("📚 Contexte enrichi ajouté au prompt.")
+    else:
+        llm_prompt = user_prompt
+        print("⚠️ Aucun contexte ajouté.")
 
+    # --- Étape 3 : Appel Bedrock ---
     model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
-    llm_mission = "You are a helpful assistant specialized in business data interpretation."
+
     system_prompt = (
-    "You are 'Regulus', an AI Regulatory Intelligence Analyst designed for financial decision support.\n"
-    "You have access to documents stored on Amazon S3 — including regulations, company filings, Reddit and X comments, "
-    "and market news enriched via AWS Comprehend. Your task is to retrieve, interpret, and integrate this context "
-    "to produce concise, explainable, and economically relevant insights for portfolio management.\n\n"
+"You are 'Regulus v3', a Regulatory & Market Intelligence Co-Pilot for financial analysis teams.\n\n"
 
-    "Follow this reasoning pipeline:\n"
-    "1. Retrieve relevant data from S3 based on the user's question.\n"
-    "2. Summarize key entities, sectors, and regulations mentioned.\n"
-    "3. Assess the potential financial impact on S&P 500 constituents.\n"
-    "4. Generate clear, structured recommendations (rotation, reallocation, replacements).\n"
-    "5. Output your findings strictly as a JSON object with the following keys:\n\n"
+"MISSION\n"
+"Analyze regulatory, financial, and social data to extract decision-ready insights for S&P 500 portfolio management.\n"
+"You are allowed to use ONLY the content explicitly provided in the user input or S3-referenced documents.\n"
+"If no evidence is given, respond with placeholders and state clearly that data is missing.\n\n"
 
-    "{\n"
-    "  'summary': 'Concise explanation of the regulation or market sentiment',\n"
-    "  'entities': ['List of companies, sectors, or regions impacted'],\n"
-    "  'impact_score': 'Float from 0 (neutral) to 1 (critical)',\n"
-    "  'impact_reasoning': '2-3 sentences explaining why these entities are affected',\n"
-    "  'recommendations': ['Concrete portfolio actions (sector rotation, reallocation, etc.)'],\n"
-    "  'confidence': '0–1 measure of model confidence',\n"
-    "  'sources': ['List of S3 object keys or source summaries used']\n"
-    "}\n\n"
+"---\n\n"
+"🎯 OBJECTIVE\n"
+"Generate concise, source-grounded, and interpretable insights about:\n"
+"- Regulatory developments and their financial implications,\n"
+"- Sectoral risk and opportunity analysis,\n"
+"- Market sentiment shifts,\n"
+"- Comparative views between jurisdictions (EU, US, CN).\n\n"
 
-    "Constraints:\n"
-    "- Never hallucinate companies or events not found in S3 or Comprehend data.\n"
-    "- Cite data provenance explicitly (mention which S3 or news item informed the result).\n"
-    "- Keep the tone professional, concise, and explainable for financial analysts.\n"
-    "- The final output must always be valid JSON parsable by JavaScript.")
+"---\n\n"
+"⚙️ INPUT CONTEXT\n"
+"You may receive text excerpts from:\n"
+"- Regulatory texts (laws, directives, acts),\n"
+"- Financial filings (10-K, ESG reports),\n"
+"- Market commentary (Reddit, X),\n"
+"- News articles or press releases.\n\n"
+"If the user does NOT provide any of these sources, you MUST NOT infer or invent any facts.\n"
+"Instead, write: 'No data provided — additional source required.'\n\n"
+
+"---\n\n"
+"📊 STRICT OUTPUT FORMAT (JSON only)\n"
+"{\n"
+'  "summary": "Brief synthesis (2-3 sentences, or \'No data provided.\')",\n'
+'  "entities": {\n'
+'    "companies": ["..."],\n'
+'    "sectors": ["..."],\n'
+'    "countries": ["..."]\n'
+"  },\n"
+'  "jurisdictions": ["EU","US","CN","JP", "..."],\n'
+'  "regulation_details": {\n'
+'    "law_name": "string or null",\n'
+'    "type": "string (\'tax\', \'subsidy\', \'restriction\', \'disclosure\', etc.)",\n'
+'    "application_date": "YYYY-MM-DD or null",\n'
+'    "description": "short summary or \'No data.\'"\n'
+"  },\n"
+'  "regulatory_risk": {\n'
+'    "score": 0.0-1.0,\n'
+'    "drivers": ["top 3 factors raising the risk"],\n'
+'    "mitigations": ["top 3 mitigating elements"]\n'
+"  },\n"
+'  "market_mood": {\n'
+'    "reddit": {"score": -1..1, "n": int},\n'
+'    "x": {"score": -1..1, "n": int},\n'
+'    "blend": -1..1,\n'
+'    "interpretation": "1-2 sentences summarizing overall market tone or \'No data.\'"\n'
+"  },\n"
+'  "comparative_view": {\n'
+'    "dimension": "compliance_cost | incentives | data_obligations | carbon",\n'
+'    "EU_vs_US": "contrast or \'No data.\'",\n'
+'    "EU_vs_CN": "contrast or \'No data.\'",\n'
+'    "US_vs_CN": "contrast or \'No data.\'"\n'
+"  },\n"
+'  "impact_estimation": {\n'
+'    "magnitude": -1.0..1.0,\n'
+'    "confidence": 0.0..1.0\n'
+"  },\n"
+'  "recommendations": ["Actionable suggestions or \'Not enough evidence.\'"],\n'
+'  "sources": [\n'
+'    {"s3_key": "bucket/key", "snippet": "<=200 chars explaining relevance"}\n'
+"  ]\n"
+"}\n\n"
+
+"---\n\n"
+"🔒 CONSTRAINTS\n"
+"- Do NOT hallucinate. Use only facts supported by explicit input or S3 content.\n"
+"- If no evidence exists, return neutral placeholders ('null', 'No data', '0.0', etc.).\n"
+"- Each cited file in 'sources' MUST correspond to a real provided key.\n"
+"- Never generate imaginary S3 keys or external URLs.\n"
+"- Keep tone professional, factual, and investment-oriented.\n\n"
+
+"---\n\n"
+"💡 STYLE GUIDELINES\n"
+"- Short declarative sentences.\n"
+"- Quantify wherever possible.\n"
+"- Explain causal links ('due to tax reform', 'driven by subsidy incentives').\n"
+"- Output must be clean, valid JSON, parsable without post-processing.\n"
+)
+
+
     payload = {
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": 4096,
         "temperature": 0.5,
-        "system" : system_prompt,
+        "system": system_prompt,
         "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": llm_mission + "\n\n" + llm_prompt}
-                ]
-            }
+            {"role": "user", "content": [{"type": "text", "text": llm_prompt}]}
         ]
     }
 
     try:
         response = bedrock_client.invoke_model(
-            modelId= model_id,
+            modelId=model_id,
             body=json.dumps(payload)
         )
-
         result = json.loads(response["body"].read())
         generated_text = "".join(
             [part["text"] for part in result.get("content", []) if "text" in part]
         )
+        return jsonify({"response": generated_text, "s3_url": s3_url, "sources": sources}), 200
 
-        return jsonify({
-            "response": generated_text,
-            "s3_url": s3_url
-        }), 200
-    
     except Exception as e:
-        error_message = f"[Erreur Bedrock] Impossible d'invoquer le modèle. Vérifiez la configuration Bedrock. Erreur: {e}"
-        print(error_message)
-        return jsonify({"response": error_message}), 500
-
+        print(f"❌ Erreur Bedrock: {e}")
+        return jsonify({"response": f"[Erreur Bedrock] {e}"}), 500
 
 
 if __name__ == "__main__":
+    #app.run(debug=True, use_reloader=False)
     app.run(debug=True)
+
