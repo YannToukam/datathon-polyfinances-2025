@@ -6,6 +6,8 @@ import boto3
 import random
 from urllib.request import urlretrieve
 import os
+import tempfile
+import datetime
 
 # Configuration AWS
 S3_REGION = "us-west-2" 
@@ -101,26 +103,42 @@ def chat():
 
     user_prompt = data.get("prompt", "")
     file_content = data.get("file_content") 
-    
+    file_extension = data.get("file_extension")
     llm_prompt = user_prompt
+
+    s3_url = None
     
     # 1. Construction du prompt final (RAG)
     if file_content:
-        # Injection du contenu dans le prompt pour le RAG
-        llm_prompt = (
-            f"Voici le contenu du document pour l'analyse:\n\n"
-            f"---\n"
-            f"{file_content}\n"
-            f"---\n\n"
-            f"En te basant uniquement sur ce document, réponds à la question suivante: {user_prompt}"
-        )
-        print("Analyse avec contenu de fichier. Taille du contenu: " + str(len(file_content)) + " caractères.")
-    else:
-        print("Analyse de dialogue simple.")
+        try:
+            timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+            file_key = f"uploads/{timestamp}.{file_extension or 'txt'}"
 
-    
+            # Écrire contenu dans un fichier temporaire pour upload_file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension or 'txt'}") as tmp:
+                tmp.write(file_content.encode("utf-8"))
+                tmp_path = tmp.name
+
+            s3_client.upload_file(tmp_path, s3_bucket_name, file_key)
+            os.remove(tmp_path)
+
+            s3_url = f"s3://{s3_bucket_name}/{file_key}"
+            print(f"✅ Fichier envoyé sur S3 : {s3_url}")
+
+        except Exception as e:
+            error_message = f"[Erreur S3] Impossible d'envoyer le fichier sur S3 : {e}"
+            print(error_message)
+            return jsonify({"response": error_message}), 500
+
+    llm_prompt = user_prompt
+    if file_content:
+        llm_prompt = (
+            f"Voici un fichier stocké à l'adresse {s3_url}.\n"
+            f"Basé sur ce document, réponds à la question suivante : {user_prompt}"
+        )
+
     model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
-    llm_mission = "This is your mission : You are a helpful expert in france cuisine."
+    llm_mission = "You are a helpful assistant specialized in business data interpretation."
     payload = {
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": 4096,
@@ -129,7 +147,7 @@ def chat():
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": llm_mission + llm_prompt}
+                    {"type": "text", "text": llm_mission + "\n\n" + llm_prompt}
                 ]
             }
         ]
@@ -146,7 +164,11 @@ def chat():
             [part["text"] for part in result.get("content", []) if "text" in part]
         )
 
-        return jsonify({"response": generated_text})
+        return jsonify({
+            "response": generated_text,
+            "s3_url": s3_url
+        }), 200
+    
     except Exception as e:
         error_message = f"[Erreur Bedrock] Impossible d'invoquer le modèle. Vérifiez la configuration Bedrock. Erreur: {e}"
         print(error_message)
