@@ -54,15 +54,6 @@ const DescriptionSection = ({ variations }) => {
         ) : (
           <p className="no-results">No results found.</p>
         )}
-
-        <div className="summary">
-          <h3>Summary</h3>
-          <p>
-            Renewable energy and tech sectors show resilience following new
-            sustainability legislation. Fossil fuel sectors face moderate
-            downside pressure due to carbon taxation.
-          </p>
-        </div>
       </div>
     </div>
   );

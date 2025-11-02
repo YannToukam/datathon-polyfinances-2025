@@ -2,6 +2,7 @@
 import React from "react";
 import { Pie } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import "../styles/DescriptionSection.css";
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -37,10 +38,20 @@ const PieChart = () => {
   };
 
   return (
-    <div style={{ width: "500px"}}>
-      <h3 style = {{}}>Portfolio Distribution</h3>
+    <div style={{ width: "500px" }}>
+      <h3 className= "portfolio">Portfolio Distribution</h3>
       <Pie data={data} options={options} />
+      <div className="chart-summary">
+        <h3>Market Summary</h3>
+        <p>
+          Recent sustainability policies have strengthened technology and renewable
+          energy sectors, driving portfolio growth in green assets. Meanwhile, oil
+          and gas holdings face increased volatility and regulatory headwinds due to
+          evolving carbon taxation frameworks.
+        </p>
+      </div>
     </div>
+
   );
 };
 
