@@ -62,12 +62,41 @@ except Exception as e:
             CreateBucketConfiguration={'LocationConstraint': S3_REGION}
         )
         
-local_data_dir = "datathon-polyfinances-2025/server/data"
+local_data_dir = "./data"
 
+
+os.makedirs(local_data_dir, exist_ok=True)
+
+filename = ''
+objects = s3_client.list_objects_v2(Bucket=s3_bucket_name)
+for obj in objects.get('Contents', []):
+    key = obj['Key']
+
+    if key.endswith('/'):
+        continue
+
+    filename = key.split('/')[-1]
+
+    local_path = os.path.join(local_data_dir, filename)
+
+    s3_client.download_file(s3_bucket_name, key, local_path)
+    print(f"Downloaded '{filename}' → '{local_path}'")
+
+
+
+
+
+
+
+
+'''
+key = "reddit/reddit.txt"
 response = s3_client.list_objects_v2(Bucket=s3_bucket_name)
 contents = response.get('Contents', [])
 test_data = contents[0]['Key'] if contents else None
-print(test_data)
+s3_client.download_file(s3_bucket_name, key, local_data_dir)
+print("okk")
+'''
 
 '''
 # Download each file and print confirmation
