@@ -1,3 +1,4 @@
+'''from flask import Flask, request, jsonify
 from flask import Flask, request, jsonify
 import json
 from flask_cors import CORS
@@ -7,15 +8,6 @@ import os
 import tempfile
 import datetime
 import re
-
-from api_news import apiNews
-from api_reddit import apiReddit
-from api_x import apiX
-
-# --- CREATION API ---
-news = apiNews()
-reddit = apiReddit()
-x = apiX()
 
 # --- CONFIGURATION AWS ---
 S3_REGION = "us-west-2"
@@ -67,14 +59,9 @@ def download_relevant_files(user_prompt, bucket, local_dir, max_files=5):
     }
     keywords += [english_fallback.get(k, k) for k in keywords]
 
-    news.setKeywords(keywords)
-    reddit.setKeywords(keywords)
-    reddit.setSubreddits(keywords)
-    x.setKeywords("".join(keywords))
-
     objects = s3_client.list_objects_v2(Bucket=bucket)
     downloaded = 0
-    fallback_files = ["reddit", "x.json", "analysis", "regulation", "act", "directive", "news"]
+    fallback_files = ["reddit", "x.json", "analysis", "regulation", "act", "directive"]
 
     for obj in objects.get("Contents", []):
         key = obj["Key"]
@@ -115,11 +102,12 @@ def get_context_from_local_files(user_query, max_files=3):
     local_dir = "./data"
     context_snippets = []
     matched_files = []
+
     keywords = [w.lower() for w in user_query.split() if len(w) > 3]
-    
+
     for root, _, files in os.walk(local_dir):
         for file in files:
-            if file.endswith((".txt", ".html", ".xml", ".csv", ".json")):
+            if file.endswith((".txt", ".html", ".xml", ".csv")):
                 file_path = os.path.join(root, file)
                 try:
                     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
@@ -140,69 +128,7 @@ def get_context_from_local_files(user_query, max_files=3):
         print("❌ Aucun contexte pertinent trouvé.")
     return "\n\n".join(context_snippets), matched_files
 
-
-from botocore.exceptions import ClientError
-import hashlib
-import numpy as np
-
-def index_legal_document_in_aoss(file_path, index_name="regulations-index"):
-    """
-    Indexe un document législatif dans Amazon OpenSearch Serverless.
-    - Génère un embedding avec Bedrock Titan
-    - Stocke le texte, le titre et l'embedding
-    """
-    try:
-        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-            content = f.read()[:4000]  # limite tokens
-        doc_id = hashlib.md5(content.encode()).hexdigest()
-
-        # Génère l’embedding via Bedrock Titan
-        embed_payload = {
-            "inputText": content,
-            "modelId": "amazon.titan-embed-text-v1"
-        }
-        response = bedrock_client.invoke_model(
-            modelId="amazon.titan-embed-text-v1",
-            body=json.dumps(embed_payload)
-        )
-        result = json.loads(response["body"].read())
-        embedding = result.get("embedding")
-
-        # Envoie à OpenSearch
-        aoss_client.batch_put_document(
-            collectionName=index_name,
-            documents=[{
-                "id": doc_id,
-                "document": {
-                    "path": file_path,
-                    "text": content[:1000],
-                    "embedding": embedding
-                }
-            }]
-        )
-        print(f"✅ Document indexé dans AOSS : {file_path}")
-    except ClientError as e:
-        print(f"❌ Erreur AOSS : {e}")
-    except Exception as e:
-        print(f"⚠️ Échec indexation : {e}")
-
-@app.route("/test_aoss", methods=["GET"])
-def test_aoss():
-    try:
-        results = aoss_client.search(
-            collectionName="regulations-index",
-            query={"matchAll": {}},
-            size=3
-        )
-        docs = results.get("hits", [])
-        return jsonify({
-            "indexed_docs": len(docs),
-            "sample": [d.get("_source", {}) for d in docs]
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)})
-
-def send_to_bucket(file_content, file_extension):
+def upload_to_bucket(file_content, file_extension):
     if file_content:
         try:
             timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -217,12 +143,9 @@ def send_to_bucket(file_content, file_extension):
 
             s3_url = f"s3://{s3_bucket_name}/{file_key}"
             print(f"✅ Fichier uploadé : {s3_url}")
-            return s3_url
         except Exception as e:
             return jsonify({"response": f"[Erreur S3] {e}"}), 500
-    else:
-        return None
-
+        
 # --- ROUTE CHAT ---
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -236,21 +159,13 @@ def chat():
     file_content = data.get("file_content")
     file_extension = data.get("file_extension")
 
+    s3_url = None
+
     # --- Étape 1 : upload d’un éventuel fichier utilisateur ---
-    s3_url = send_to_bucket(file_content, file_extension)
+    upload_to_bucket(file_content=file_content, file_extension=file_extension)
 
     # --- Étape 2 : Lazy loading & RAG ---
     download_relevant_files(user_prompt, s3_bucket_name, local_data_dir)
-    # --- Étape 2.5 : Indexation des fichiers téléchargés dans OpenSearch Serverless ---
-    for root, _, files in os.walk(local_data_dir):
-        for file in files:
-            if file.endswith((".txt", ".html", ".xml")):
-                file_path = os.path.join(root, file)
-                try:
-                    index_legal_document_in_aoss(file_path)
-                except Exception as e:
-                    print(f"⚠️ Impossible d’indexer {file_path} : {e}")
-
     context_text, sources = get_context_from_local_files(user_prompt)
 
     if context_text:
@@ -381,5 +296,5 @@ def chat():
 
 if __name__ == "__main__":
     #app.run(debug=True, use_reloader=False)
-    app.run(debug=True)
+    app.run(debug=True)'''
 
