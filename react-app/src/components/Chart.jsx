@@ -37,8 +37,8 @@ const PieChart = () => {
   };
 
   return (
-    <div style={{ width: "300px"}}>
-      <h3 style={{ textAlign: "center"}}>Portfolio Distribution</h3>
+    <div style={{ width: "500px"}}>
+      <h3 style = {{}}>Portfolio Distribution</h3>
       <Pie data={data} options={options} />
     </div>
   );

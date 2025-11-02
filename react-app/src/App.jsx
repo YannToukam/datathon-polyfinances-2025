@@ -81,14 +81,15 @@ const App = () => {
     return (
         <div className="datathon-app">
             <div className="main-interface">
-                <div className="dashboard-container">
-                    <div id="description-section">
-                        <DescriptionSection />
-                    </div>
-                    <div id="pie-chart">
-                        <PieChart />
-                    </div>
+
+                <div id="description-section">
+                    <DescriptionSection />
                 </div>
+
+                <div id="pie-chart">
+                    <PieChart />
+                </div>
+
 
                 <div className="conversation-zone">
                     <ConversationHistory history={conversationHistory} />

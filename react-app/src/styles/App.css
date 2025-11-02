@@ -54,6 +54,27 @@ h1, h2, h3, h4 {
   position: relative;
 }
 
+#pie-chart {
+  position: absolute;
+  top: 50%;
+  left: calc(350px + (100% - 350px - 25vw) / 2); 
+  transform: translate(-50%, -50%);
+  width: 500px;
+  height: auto;
+  z-index: 2;
+  text-align: center;
+}
+
+
+#pie-chart h3 {
+  color: var(--color-text);
+  font-size: 1.8rem; /* ⬅️ increase this value */
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+
 /* Left section (dashboard + uploader) */
 .dashboard-container {
   flex: 1;
@@ -72,7 +93,7 @@ h1, h2, h3, h4 {
   position: fixed;
   top: 0;
   right: 0;
-  width: 30vw;
+  width: 25vw;
   height: 100vh;
   background-color: var(--color-card-bg);
   border-left: 2px solid var(--color-primary);
