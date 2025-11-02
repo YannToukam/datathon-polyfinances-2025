@@ -3,12 +3,14 @@ import React, { useState, useCallback } from 'react';
 import { PromptInput } from './components/PromptInput';
 import { DataUploader } from './components/DataUploader';
 import { ConversationHistory } from './components/ConversationHistory';
+import PieChart from "./components/Chart";
+import DescriptionSection from "./components/DescriptionSection";
 // Importez vos styles ici
 import './styles/App.css';
 import './styles/components.css'
 
 // Endpoint unique : Chat
-const CHAT_API_ENDPOINT = "http://127.0.0.1:5000/chat"; 
+const CHAT_API_ENDPOINT = "http://127.0.0.1:5000/chat";
 
 const App = () => {
     // État du fichier en cours de chargement (son contenu brut et son extension)
@@ -18,7 +20,7 @@ const App = () => {
     const [conversationHistory, setConversationHistory] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Ajoute un message à l'historique
+    // Ajoute un essage à l'historique
     const addMessage = useCallback((content, type) => {
         setConversationHistory(prev => [...prev, { content, type }]);
     }, []);
@@ -58,7 +60,7 @@ const App = () => {
         addMessage(promptText, 'user');
 
         let analysisMessage = "Analyse en cours. Veuillez patienter...";
-        
+
         // 2. Ajouter un message de chargement
         addMessage(analysisMessage, 'model');
 
@@ -67,7 +69,7 @@ const App = () => {
             const payload = {
                 prompt: promptText,
                 // Si fileContent est non-null, on l'envoie. Sinon, null.
-                file_content: fileContent, 
+                file_content: fileContent,
                 file_extension: fileExtension,
             };
 
@@ -76,19 +78,19 @@ const App = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
-            
+
             // Si la requête réussit, on nettoie le fichier localement pour éviter le double envoi
             if (fileContent) {
                 setFileContent(null);
                 setFileExtension(null);
             }
-            
+
             if (!res.ok) {
                 throw new Error(`Erreur HTTP: ${res.status}`);
             }
 
             const data = await res.json();
-            
+
             // Actualiser le dernier message du modèle avec la réponse réelle
             updateLastMessage(data.response);
 
@@ -108,11 +110,23 @@ const App = () => {
 
             <div className="main-interface">
                 <div className="file-upload-section">
-                    <DataUploader 
+                    <DataUploader
                         onDataLoad={handleDataLoad}
-                        onFileClear={handleFileClear} 
+                        onFileClear={handleFileClear}
                     />
                 </div>
+
+                <div className="dashboard-container">
+                    <div id="description-section">
+                        <DescriptionSection />
+                    </div>
+                    <div id="pie-chart">
+                        <PieChart />
+                    </div>
+
+                </div>
+
+
 
                 <div className="conversation-zone">
                     <ConversationHistory history={conversationHistory} />

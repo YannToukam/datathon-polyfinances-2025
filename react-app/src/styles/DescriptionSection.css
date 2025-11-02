@@ -1,0 +1,86 @@
+/* ------------------- DESCRIPTION SECTION ------------------- */
+
+.description-section {
+  background-color: var(--color-card-bg);
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  padding: 20px 25px;
+  max-width: 600px;
+  width: 100%;
+  font-family: "Inter", sans-serif;
+}
+
+.section-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 20px;
+}
+
+.stock-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+  padding: 10px 12px;
+  background-color: #282828;
+  border: 1px solid #444;
+  border-radius: 8px;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.stock-row:hover {
+  background-color: #333;
+}
+
+.stock-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ticker {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--color-text);
+}
+
+.variation {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.positive {
+  color: var(--color-success);
+}
+
+.negative {
+  color: var(--color-error);
+}
+
+.reason {
+  margin-top: 8px;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.summary {
+  border-top: 1px solid #333;
+  margin-top: 20px;
+  padding-top: 15px;
+}
+
+.summary h3 {
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 5px;
+}
+
+.summary p {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}

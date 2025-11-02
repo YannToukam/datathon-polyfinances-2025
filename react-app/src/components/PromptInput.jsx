@@ -1,5 +1,8 @@
 // src/components/PromptInput.jsx
 import React, { useState } from 'react';
+import { FaArrowUp } from 'react-icons/fa';
+
+
 
 export const PromptInput = ({ onSubmit, isLoading }) => { 
     const [promptText, setPromptText] = useState('');
@@ -17,11 +20,12 @@ export const PromptInput = ({ onSubmit, isLoading }) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault(); 
             handleSubmit(e); 
+            
         }
     };
 
     return (
-        <form className="prompt-input" onSubmit={handleSubmit}>
+        <form id = "prompt-input" className="prompt-input" onSubmit={handleSubmit}>
             <textarea
                 value={promptText}
                 onChange={(e) => setPromptText(e.target.value)}
@@ -31,7 +35,8 @@ export const PromptInput = ({ onSubmit, isLoading }) => {
                 disabled={isLoading}
             />
             <button type="submit" disabled={!promptText.trim() || isLoading}>
-                {isLoading ? 'Analyse...' : 'Analyser 🚀'} 
+                {isLoading ? 'Analyse...' : <FaArrowUp style = {{fontSize: "25px"}}/>} 
+                
             </button>
         </form>
     );

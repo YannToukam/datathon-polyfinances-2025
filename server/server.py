@@ -9,6 +9,7 @@ import os
 import tempfile
 import datetime
 
+
 # Configuration AWS
 S3_REGION = "us-west-2" 
 # Assurez-vous que vos identifiants AWS sont configurés (variables d'environnement, profil, ou rôle IAM)
@@ -19,6 +20,7 @@ bedrock_client = boto3.client(
 
 app = Flask(__name__)
 CORS(app) 
+
 
 # --- AJOUT CRUCIAL ---
 # Augmenter la limite de taille de la requête (16 Mo)
@@ -200,6 +202,8 @@ def chat():
         error_message = f"[Erreur Bedrock] Impossible d'invoquer le modèle. Vérifiez la configuration Bedrock. Erreur: {e}"
         print(error_message)
         return jsonify({"response": error_message}), 500
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,89 +1,101 @@
-/* src/styles/main.css (DARK THEME) */
+/* ------------------- DARK THEME: GLOBAL ------------------- */
 
 /* Variables de Design */
 :root {
-    --color-primary: #3b82f6;       /* Bleu Vif (Accent/Utilisateur) */
-    --color-background: #121212;    /* Fond très sombre */
-    --color-card-bg: #1e1e1e;       /* Fond des composants/cartes (plus clair que le fond général) */
-    --color-text: #ffffff;          /* Texte principal (Blanc) */
-    --color-text-secondary: #a0a0a0; /* Texte secondaire/placeholder */
-    --color-success: #10b981;       /* Vert (pour IA) */
-    --color-error: #ef4444;         /* Rouge */
+  --color-primary: #3b82f6; /* Accent bleu vif */
+  --color-background: #121212; /* Fond général */
+  --color-card-bg: #1e1e1e; /* Fond des cartes/composants */
+  --color-text: #ffffff; /* Texte principal */
+  --color-text-secondary: #a0a0a0; /* Texte secondaire */
+  --color-success: #10b981; /* Vert succès */
+  --color-error: #ef4444; /* Rouge erreur */
 }
+
+html, body {
+  height: 100%;
+  overflow: hidden; 
+}
+
 
 /* Base */
 body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--color-background);
-    color: var(--color-text);
-    margin: 0;
-    padding: 0;
-    line-height: 1.6;
+  font-family: "Inter", sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
 }
 
 h1, h2, h3, h4 {
-    color: var(--color-text);
-    margin: 0.5rem 0;
+  color: var(--color-text);
+  margin: 0.5rem 0;
 }
 
-/* ---------------------------------------------------- */
-/* ------------------- LAYOUT GÉNÉRAL ------------------- */
-/* ---------------------------------------------------- */
+/* ------------------- LAYOUT ------------------- */
 
 .datathon-app {
-    /* Conteneur central max */
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.dashboard-container{
+    display: flex;
+    position : relative;
+    top:-120px;
+    
 }
 
+
 .app-header {
-    /* En-tête de l'application */
-    background-color: var(--color-card-bg);
-    padding: 20px 30px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Ombre pour la profondeur */
-    margin-bottom: 20px;
-    border-top: 5px solid var(--color-primary); /* Bordure d'accentuation */
+  background-color: var(--color-card-bg);
+  padding: 20px 30px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  margin-bottom: 20px;
+  border-top: 5px solid var(--color-primary);
 }
 
 .main-interface {
-    /* Flex conteneur pour organiser les sections d'upload et de conversation */
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .file-upload-section {
-    /* Conteneur de l'uploader, centré et de taille limitée */
-    max-width: 400px; 
-    margin: 0 auto 20px auto; 
+  max-width: 400px;
+  margin: 0 auto 20px auto;
 }
 
-/* ---------------------------------------------------- */
-/* ------------------- ZONE CONVERSATION ------------------- */
-/* ---------------------------------------------------- */
+/* ------------------- CONVERSATION ZONE ------------------- */
 
 .conversation-zone {
-    /* Conteneur principal de la discussion (hauteur fixe pour le défilement) */
-    display: flex;
-    flex-direction: column;
-    height: 70vh; /* Utiliser vh pour une hauteur relative à l'écran */
-    background-color: var(--color-card-bg);
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    padding: 20px;
+  display: flex;
+  flex-direction: column;
+  height: 70vh;
+  width: 60vh;
+  background-color: var(--color-card-bg);
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  padding: 20px;
+
+  position: absolute;
+  top: 60%;
+  right: 20px;
+  transform: translateY(-50%);
+  z-index: 1000;
 }
 
-/* ---------------------------------------------------- */
 /* ------------------- RESPONSIVE ------------------- */
-/* ---------------------------------------------------- */
 
 @media (max-width: 768px) {
-    .datathon-app {
-        padding: 10px;
-    }
-    .conversation-zone {
-        height: 80vh; /* Utilise plus de hauteur sur petit écran */
-    }
+  .datathon-app {
+    padding: 10px;
+  }
+
+  .conversation-zone {
+    height: 80vh;
+    width: 90%;
+    right: 5%;
+  }
 }
