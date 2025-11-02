@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+'''from flask import Flask, request, jsonify
 import json
 from flask_cors import CORS
 import boto3
@@ -295,5 +295,5 @@ def chat():
 
 if __name__ == "__main__":
     #app.run(debug=True, use_reloader=False)
-    app.run(debug=True)
+    app.run(debug=True)'''
 
