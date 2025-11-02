@@ -47,6 +47,8 @@
   align-items: center;
   gap: 10px;
   margin-top: auto;
+  margin-bottom: 30px; /* ✅ augmenté (10px → 30px) */
+  padding-bottom: 30px; /* ✅ ajouté plus d’espace visuel */
 }
 
 .prompt-input textarea {
@@ -97,6 +99,36 @@
 
 .attach-button:hover {
   color: var(--color-primary);
+}
+
+/* ------------------- FILE INFO BAR ------------------- */
+
+.file-info-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.clear-file-btn {
+  background: none;
+  border: none;
+  color: var(--color-error);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+}
+
+.clear-file-btn:hover {
+  color: #ff4d4d;
 }
 
 /* ------------------- CONVERSATION HISTORY ------------------- */
