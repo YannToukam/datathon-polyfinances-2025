@@ -20,6 +20,13 @@ CORS(app)
 # Nécessaire pour envoyer des fichiers volumineux dans le corps JSON
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 # ---------------------
+# Create boto3 clients for AOSS, Bedrock, and S3 services
+aoss_client = boto3.client('opensearchserverless')
+bedrock_agent_client = boto3.client('bedrock-agent')
+s3_client = boto3.client('s3')
+
+
+
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -56,7 +63,7 @@ def chat():
 
     
     model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
-
+    llm_mission = "This is your mission : You are a helpful expert in france cuisine."
     payload = {
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": 4096,
@@ -65,7 +72,7 @@ def chat():
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": llm_prompt}
+                    {"type": "text", "text": llm_mission + llm_prompt}
                 ]
             }
         ]
