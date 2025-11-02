@@ -1,6 +1,3 @@
-
-import sys
-sys.path.append('.')
 from eventregistry import EventRegistry, QueryArticlesIter
 from dotenv import load_dotenv
 import os
@@ -48,4 +45,4 @@ if __name__ == "__main__":
 
     helper = Helper()
     helper.sendDataToBucket(source="eventregistry", file_path=file_name)
-
+    os.remove(file_name)
