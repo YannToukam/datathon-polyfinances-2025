@@ -13,6 +13,7 @@ const App = () => {
     const [fileContent, setFileContent] = useState(null);
     const [fileExtension, setFileExtension] = useState(null);
     const [conversationHistory, setConversationHistory] = useState([]);
+    const [summary, setSummary] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
     const addMessage = useCallback((content, type) => {
@@ -69,6 +70,8 @@ const App = () => {
             if (!res.ok) throw new Error(`Erreur HTTP: ${res.status}`);
             const data = await res.json();
             updateLastMessage(data.response);
+            setSummary(data.response.summary);
+
 
         } catch (error) {
             console.error("Erreur:", error);
@@ -88,6 +91,14 @@ const App = () => {
 
                 <div id="pie-chart">
                     <PieChart />
+                    <div className="chart-summary">
+                        <h3>Market Summary</h3>
+                        <p>
+                            {summary
+                                ? summary
+                                : "Awaiting analysis... Submit a prompt to see your portfolio summary."}
+                        </p>
+                    </div>
                 </div>
 
 
