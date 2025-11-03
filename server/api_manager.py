@@ -21,6 +21,7 @@ class Apis:
             self.api_x.createFile()
         except Exception as e:
             print(f"API Key for X on cooldown")
+            a = "b"
 
 apis = Apis()
 print(apis.api_x.BEARER_TOKEN)
