@@ -2,11 +2,11 @@ import praw
 from prawcore import NotFound
 from dotenv import load_dotenv
 import os
-from helper import helper
+from apis.helper import helper
 
 class apiReddit:
     def __init__(self, keywords=[], subreddits=[]):
-        ENV_PATH = "../../api_reddit.env"
+        ENV_PATH = "../api_reddit.env"
 
         load_dotenv(dotenv_path=ENV_PATH)
 

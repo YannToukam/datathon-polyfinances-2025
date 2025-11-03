@@ -1,12 +1,12 @@
 import requests
 from dotenv import load_dotenv
 import os
-from helper import helper
+from apis.helper import helper
 import json
 
 class apiX:
     def init(self):
-        ENV_PATH = "../../api_x.env"
+        ENV_PATH = "../api_x.env"
         load_dotenv(dotenv_path=ENV_PATH)
         self.BEARER_TOKEN = os.getenv("BEARER_TOKEN")
         self.url = "https://api.x.com/2/tweets/search/recent"

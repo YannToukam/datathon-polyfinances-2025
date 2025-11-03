@@ -1,7 +1,7 @@
 import os
 from aws_clients import s3_client
 from config import S3_BUCKET_NAME, LOCAL_DATA_DIR
-from apis import apis
+from api_manager import apis
 
 def download_relevant_files(user_prompt, max_files=5):
     """Télécharge les fichiers pertinents depuis S3 selon les mots-clés du prompt."""
