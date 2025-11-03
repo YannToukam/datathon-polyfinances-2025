@@ -4,8 +4,8 @@ import os
 from apis.helper import helper
 import json
 
-class apiX:
-    def init(self):
+class ApiX:
+    def __init__(self):
         ENV_PATH = "../api_x.env"
         load_dotenv(dotenv_path=ENV_PATH)
         self.BEARER_TOKEN = os.getenv("BEARER_TOKEN")
@@ -34,7 +34,7 @@ class apiX:
         self.keywords = keywords
 
     def createFile(self):
-        data = self.getTweets("money")
+        data = self.getTweets(self.keywords)
 
         file_name = "x.json"
 

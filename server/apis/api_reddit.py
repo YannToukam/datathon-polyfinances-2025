@@ -1,10 +1,10 @@
 import praw
-from prawcore import NotFound
+import prawcore
 from dotenv import load_dotenv
 import os
 from apis.helper import helper
 
-class apiReddit:
+class ApiReddit:
     def __init__(self, keywords=[], subreddits=[]):
         ENV_PATH = "../api_reddit.env"
 
@@ -27,10 +27,15 @@ class apiReddit:
         valid_subreddits = []
         for sub in subreddits:
             try:
-                self.reddit.subreddits.search_by_name(sub, exact=True)
+                subreddit = self.reddit.subreddit(sub)
+                _ = subreddit.id
                 valid_subreddits.append(sub)
-            except NotFound:
-                continue
+            except prawcore.exceptions.NotFound:
+                print(f"⚠️ Subreddit '{sub}' introuvable.")
+            except prawcore.exceptions.Forbidden:
+                print(f"🚫 Subreddit '{sub}' est privé ou restreint.")
+            except Exception as e:
+                print(f"⚠️ Erreur sur '{sub}': {e}")
         self.subreddits = valid_subreddits
 
     def getPosts(self):

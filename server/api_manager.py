@@ -1,12 +1,12 @@
-from apis.api_news import apiNews
-from apis.api_reddit import apiReddit
-from apis.api_x import apiX
+from apis.api_news import ApiNews
+from apis.api_reddit import ApiReddit
+from apis.api_x import ApiX
 
 class Apis:
     def __init__(self):
-        self.api_news = apiNews()
-        self.api_reddit = apiReddit()
-        self.api_x = apiX()
+        self.api_news = ApiNews()
+        self.api_reddit = ApiReddit()
+        self.api_x = ApiX()
 
     def set_all_keywords(self, keywords: list[str]):
         self.api_news.setKeywords(keywords)
@@ -20,3 +20,4 @@ class Apis:
         x_data = self.api_x.createFile()
 
 apis = Apis()
+print(apis.api_x.BEARER_TOKEN)

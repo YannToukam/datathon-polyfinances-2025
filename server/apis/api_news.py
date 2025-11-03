@@ -4,7 +4,7 @@ import os
 from apis.helper import helper
 from datetime import date, timedelta
 
-class apiNews:
+class ApiNews:
     def __init__(self, keywords=[]):
         ENV_PATH = "../api_news.env"
         load_dotenv(dotenv_path=ENV_PATH)
