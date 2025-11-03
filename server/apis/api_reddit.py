@@ -1,7 +1,8 @@
 import praw
+from prawcore import NotFound
 from dotenv import load_dotenv
 import os
-from helper import Helper
+from helper import helper
 
 class apiReddit:
     def __init__(self, keywords=[], subreddits=[]):
@@ -23,7 +24,14 @@ class apiReddit:
         self.keywords = keywords
 
     def setSubreddits(self, subreddits):
-        self.subreddits = subreddits
+        valid_subreddits = []
+        for sub in subreddits:
+            try:
+                self.reddit.subreddits.search_by_name(sub, exact=True)
+                valid_subreddits.append(sub)
+            except NotFound:
+                continue
+        self.subreddits = valid_subreddits
 
     def getPosts(self):
         text = []
@@ -35,18 +43,12 @@ class apiReddit:
                     text.append("\n")
         return "".join(text)
 
-if __name__ == "__main__":
-    reddit = apiReddit()
-    helper = Helper()
+    def createFile(self):
+        text = self.getPosts()
+        file_name = "reddit.txt"
 
-    text = reddit.getPosts()
+        with open(file_name, 'w') as file:
+            file.write(text)
 
-    file_name = "reddit.txt"
-
-    with open(file_name, 'w') as file:
-        file.write(text)
-
-    helper.sendDataToBucket(source="reddit", file_path=file_name)
-
-    os.remove(file_name)
-
+        helper.sendDataToBucket(source="reddit", file_path=file_name)
+        os.remove(file_name)

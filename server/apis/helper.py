@@ -11,3 +11,6 @@ class Helper:
         file_name = file_path
         s3_object_name = f'{s3_folder}/{file_name}'
         self.s3_client.upload_file(file_name, self.data_bucket_name, s3_object_name)
+
+
+helper = Helper()

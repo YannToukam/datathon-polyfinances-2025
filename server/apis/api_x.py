@@ -1,7 +1,7 @@
 import requests
 from dotenv import load_dotenv
 import os
-from helper import Helper
+from helper import helper
 import json
 
 class apiX:
@@ -33,18 +33,14 @@ class apiX:
     def setKeywords(self, keywords):
         self.keywords = keywords
 
-if __name__ == "__main__":
-    x = apiX()
+    def createFile(self):
+        data = self.getTweets("money")
 
-    data = x.getTweets("money")
+        file_name = "x.json"
 
-    file_name = "x.json"
+        with open(file_name, 'w') as json_file:
+            json.dump(data, json_file, indent=4)
 
-    with open(file_name, 'w') as json_file:
-        json.dump(data, json_file, indent=4)
+        helper.sendDataToBucket(source="x", file_path=file_name)
 
-    helper = Helper()
-    helper.sendDataToBucket(source="x", file_path=file_name)
-
-    os.remove(file_name)
-
+        os.remove(file_name)
