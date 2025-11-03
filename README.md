@@ -28,72 +28,25 @@ cd datathon-polyfinances-2025
 
 ### 2. Install dependencies
 Ensure you have Python 3.11+ (or as specified) and optionally Docker.
-Open the server folden in the terminal and run this command:
+Open the server folder in a terminal and run this command:
 ```bash
 pip install -r requirements.txt
 ```
 
 Ensure you have npm 11.6+
-Open the react-app 
+Open the react-app folder in a terminal and run this command:
 ```bash
-pip install -r requirements.txt
+npm i
 ```
 
-### 3. Prepare data
-Place raw dataset(s) into `data/raw/`. Then run the preprocessing script:  
+### 3. Launch the server
+Open the server folder in a terminal and run this command: 
 ```bash
-python src/data_preprocessing.py --input data/raw/ --output data/processed/
+python app.py
 ```
 
-### 4. Train the model (if applicable)
+### 4. Launch the website
+Open the react-app folder in a terminal and run this command:
 ```bash
-python src/train_model.py --data data/processed/ --model output/model.pkl
+npm run dev
 ```
-
-### 5. Launch the application / dashboard
-If there’s a frontend, run:  
-```bash
-cd app
-npm install      # or yarn
-npm start        # or yarn start
-```
-Alternatively, to use a Flask/FastAPI backend:  
-```bash
-python src/app.py
-```
-
-### 6. (Optional) Run via Docker
-```bash
-docker build -t datathon-pf2025:latest .
-docker run -p 8000:8000 datathon-pf2025:latest
-```
-
-## ✅ What You’ll Find
-- Data ingestion, cleaning and transformation pipeline  
-- Machine‑learning or statistical model to address the finance challenge  
-- Interactive dashboard/UI to visualise results and support decision‑making  
-- Documentation with explanation of architecture, design choices and insights  
-- Deployment instructions for a public facing tool  
-
-## 📘 Context
-The Datathon PolyFinances 2025 is a **36‑hour intensive competition** where students solve a concrete financial problem using data science and engineering. ([polyfinances.ca](https://www.polyfinances.ca/datathon?utm_source=chatgpt.com))  
-The challenge emphasises real‑world relevance, teaming, rapid prototyping, and deployment of a usable tool. ([datathon-polyfinances-2025.devpost.com](https://datathon-polyfinances-2025.devpost.com/?ref_feature=challenge&ref_medium=similar-hackathons&utm_source=chatgpt.com))
-
-## 🧩 Why This Project Matters
-- Bridges finance + data science: combining technical skills with domain knowledge  
-- Rapid development under time constraints showcases agile thinking and teamwork  
-- Provides a deployable proof‑of‑concept that can be expanded beyond the hackathon  
-
-## 🔍 Next Steps / Enhancements
-- Improve model performance (e.g., hyper‑parameter tuning, ensemble methods)  
-- Add more data sources (market, macro‑economic, alternative data)  
-- Harden the deployment (authentication, scaling, logging)  
-- Add CI/CD pipeline, cloud deployment (AWS/GCP)  
-- Turn into production‑ready service  
-
-## 🙏 Acknowledgements
-Thanks to the organising team at PolyFinances and Polytechnique Montréal for hosting the event. Special recognition to the partner institution La Caisse de dépôt et placement du Québec for their support. ([datathon-polyfinances-2025.devpost.com](https://datathon-polyfinances-2025.devpost.com/?ref_feature=challenge&ref_medium=similar-hackathons&utm_source=chatgpt.com))  
-
-## 📄 License
-Specify your licence (e.g., MIT) here if applicable.
-
