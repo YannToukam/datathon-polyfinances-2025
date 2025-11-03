@@ -1,6 +1,7 @@
 import os
 from aws_clients import s3_client
 from config import S3_BUCKET_NAME, LOCAL_DATA_DIR
+from api_manager import apis
 
 def download_relevant_files(user_prompt, max_files=5):
     """Télécharge les fichiers pertinents depuis S3 selon les mots-clés du prompt."""
@@ -8,6 +9,10 @@ def download_relevant_files(user_prompt, max_files=5):
     english_fallback = {"chine": "china", "énergie": "energy", "loi": "law", "financier": "finance"}
     keywords += [english_fallback.get(k, k) for k in keywords]
     fallback_files = ["reddit", "analysis", "regulation", "directive"]
+
+    apis.set_all_keywords(keywords)
+
+    apis.create_all_files()
 
     objects = s3_client.list_objects_v2(Bucket=S3_BUCKET_NAME)
     downloaded = 0

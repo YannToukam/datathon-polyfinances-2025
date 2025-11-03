@@ -1,12 +1,12 @@
 from eventregistry import EventRegistry, QueryArticlesIter
 from dotenv import load_dotenv
 import os
-from helper import Helper
+from apis.helper import helper
 from datetime import date, timedelta
 
-class apiNews:
+class ApiNews:
     def __init__(self, keywords=[]):
-        ENV_PATH = "../../api_news.env"
+        ENV_PATH = "../api_news.env"
         load_dotenv(dotenv_path=ENV_PATH)
         API_KEY = os.getenv("API_KEY")
 
@@ -38,14 +38,12 @@ class apiNews:
     def setKeywords(self, keywords):
         self.keywords = keywords
 
-if __name__ == "__main__":
-    news = apiNews(keywords=["S&P 500", "inflation", "economic policy"])
-    text = news.getRecentNews(days=5, max_articles=5)
+    def createFiles(self):
+        text = self.getRecentNews(days=5, max_articles=5)
 
-    file_name = "news.txt"
-    with open(file_name, "w", encoding="utf-8") as f:
-        f.write(text)
+        file_name = "news.txt"
+        with open(file_name, "w", encoding="utf-8") as f:
+            f.write(text)
 
-    helper = Helper()
-    helper.sendDataToBucket(source="news", file_path=file_name)
-    os.remove(file_name)
+        helper.sendDataToBucket(source="news", file_path=file_name)
+        os.remove(file_name)

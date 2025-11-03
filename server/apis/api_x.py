@@ -1,12 +1,12 @@
 import requests
 from dotenv import load_dotenv
 import os
-from helper import Helper
+from apis.helper import helper
 import json
 
-class apiX:
-    def init(self):
-        ENV_PATH = "../../api_x.env"
+class ApiX:
+    def __init__(self):
+        ENV_PATH = "../api_x.env"
         load_dotenv(dotenv_path=ENV_PATH)
         self.BEARER_TOKEN = os.getenv("BEARER_TOKEN")
         self.url = "https://api.x.com/2/tweets/search/recent"
@@ -33,18 +33,14 @@ class apiX:
     def setKeywords(self, keywords):
         self.keywords = keywords
 
-if __name__ == "__main__":
-    x = apiX()
+    def createFile(self):
+        data = self.getTweets(self.keywords)
 
-    data = x.getTweets("money")
+        file_name = "x.json"
 
-    file_name = "x.json"
+        with open(file_name, 'w') as json_file:
+            json.dump(data, json_file, indent=4)
 
-    with open(file_name, 'w') as json_file:
-        json.dump(data, json_file, indent=4)
+        helper.sendDataToBucket(source="x", file_path=file_name)
 
-    helper = Helper()
-    helper.sendDataToBucket(source="x", file_path=file_name)
-
-    os.remove(file_name)
-
+        os.remove(file_name)

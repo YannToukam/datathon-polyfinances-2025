@@ -1,11 +1,12 @@
 import praw
+import prawcore
 from dotenv import load_dotenv
 import os
-from helper import Helper
+from apis.helper import helper
 
-class apiReddit:
+class ApiReddit:
     def __init__(self, keywords=[], subreddits=[]):
-        ENV_PATH = "../../api_reddit.env"
+        ENV_PATH = "../api_reddit.env"
 
         load_dotenv(dotenv_path=ENV_PATH)
 
@@ -23,7 +24,19 @@ class apiReddit:
         self.keywords = keywords
 
     def setSubreddits(self, subreddits):
-        self.subreddits = subreddits
+        valid_subreddits = []
+        for sub in subreddits:
+            try:
+                subreddit = self.reddit.subreddit(sub)
+                _ = subreddit.id
+                valid_subreddits.append(sub)
+            except prawcore.exceptions.NotFound:
+                print(f"⚠️ Subreddit '{sub}' introuvable.")
+            except prawcore.exceptions.Forbidden:
+                print(f"🚫 Subreddit '{sub}' est privé ou restreint.")
+            except Exception as e:
+                print(f"⚠️ Erreur sur '{sub}': {e}")
+        self.subreddits = valid_subreddits
 
     def getPosts(self):
         text = []
@@ -35,18 +48,12 @@ class apiReddit:
                     text.append("\n")
         return "".join(text)
 
-if __name__ == "__main__":
-    reddit = apiReddit()
-    helper = Helper()
+    def createFile(self):
+        text = self.getPosts()
+        file_name = "reddit.txt"
 
-    text = reddit.getPosts()
+        with open(file_name, 'w') as file:
+            file.write(text)
 
-    file_name = "reddit.txt"
-
-    with open(file_name, 'w') as file:
-        file.write(text)
-
-    helper.sendDataToBucket(source="reddit", file_path=file_name)
-
-    os.remove(file_name)
-
+        helper.sendDataToBucket(source="reddit", file_path=file_name)
+        os.remove(file_name)
