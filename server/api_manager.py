@@ -15,9 +15,12 @@ class Apis:
         self.api_x.setKeywords("".join(keywords))
 
     def create_all_files(self):
-        news_data = self.api_news.createFiles()
-        reddit_data = self.api_reddit.createFile()
-        x_data = self.api_x.createFile()
+        self.api_news.createFiles()
+        self.api_reddit.createFile()
+        try:
+            self.api_x.createFile()
+        except Exception as e:
+            print(f"API Key for X on cooldown")
 
 apis = Apis()
 print(apis.api_x.BEARER_TOKEN)
