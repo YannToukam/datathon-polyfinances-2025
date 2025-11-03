@@ -4,16 +4,38 @@
 ## 🚀 Project Summary
 This project builds a data‑driven solution to a finance‑oriented challenge posed during the datathon: real‑world financial / market / investment / risk problem solved with engineering, data science and AI techniques. The repository contains code, data pipelines, models, a web interface (or dashboard) and deployment instructions.  
 
+## IMPORTANT NOTE
+To run this project, you need API Keys for the following : X (Twitter), Reddit, NewsApi.ai
+In the root directory, you need 3 .env files. Here are the names and how they should be structured:
+
+api_news.env
+```
+API_KEY="YOUR_API_KEY"
+```
+
+api_reddit.env
+```
+CLIENT_ID="YOUR_CLIENT_ID"
+SECRET="YOUR_SECRET"
+USER_AGENT="YOUR_USER_AGENT"
+```
+
+api_x.env
+```
+BEARER_TOKEN="YOUR_BEARER_TOKEN"
+```
+
+
 ## 📦 Repository Structure
 ```
 / (root)
-├── data/                   ← raw and processed datasets
-├── notebooks/              ← exploratory analysis & prototyping
-├── src/                    ← main code (ingest, process, train, serve)
-├── app/                    ← frontend / dashboard / UI code
-├── docs/                   ← architecture diagrams, technical design, one‑pager
+├── data/                   ← data
+├── react-app/              ← Frontend /  UI code
 ├── requirements.txt        ← Python dependencies
-├── Dockerfile              ← containerisation (if used)
+├── server/                 ← Backend / Server code
+├── api_x.env               ← X Api's key
+├── api_reddit.env          ← Reddit Api's key
+├── api_news.env            ← NewsApi Api's key
 └── README.md               ← this file
 ```
 
