@@ -86,6 +86,7 @@
   border: 1px solid #333;
   border-radius: 8px;
   transition: background-color 0.2s ease-in-out;
+  cursor: pointer;
 }
 .stock-row:hover {
   background-color: #222;
@@ -95,6 +96,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  cursor: pointer;
 }
 .ticker {
   font-weight: 700;

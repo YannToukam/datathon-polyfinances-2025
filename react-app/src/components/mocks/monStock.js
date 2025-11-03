@@ -4,6 +4,7 @@ const mockStocks = [
   {
     stock_symbol: "TSLA",
     impact_estimation: { magnitude: 0.42 },
+    sector: "Energy",
     summary: "US clean energy subsidies boost domestic EV production.",
     regulation_details: {
       law_name: "Inflation Reduction Act of 2022",
@@ -21,6 +22,7 @@ const mockStocks = [
   },
   {
     stock_symbol: "XOM",
+    sector: "Energy",
     impact_estimation: { magnitude: -0.50 },
     summary: "Carbon policy pressure on oil producers.",
     regulation_details: {
@@ -47,6 +49,7 @@ const mockStocks = [
   },
   {
     stock_symbol: "MSFT",
+    sector: "Tech",
     impact_estimation: { magnitude: -0.35 },
     summary: "EU digital regulations increase compliance costs for US tech firms.",
     regulation_details: {
@@ -74,6 +77,7 @@ const mockStocks = [
   },
   {
     stock_symbol: "AAPL",
+    sector: "Healthcare",
     impact_estimation: { magnitude: 0.18 },
     summary: "Tech exports benefit from favorable tax policy extensions.",
     regulation_details: {
@@ -97,6 +101,7 @@ const mockStocks = [
   },
   {
     stock_symbol: "AMZN",
+    sector: "Finance",
     impact_estimation: { magnitude: 0.25 },
     summary: "E-commerce demand rises following import tariff adjustments.",
     regulation_details: {
