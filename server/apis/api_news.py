@@ -1,12 +1,12 @@
 from eventregistry import EventRegistry, QueryArticlesIter
 from dotenv import load_dotenv
 import os
-from helper import helper
+from apis.helper import helper
 from datetime import date, timedelta
 
 class apiNews:
     def __init__(self, keywords=[]):
-        ENV_PATH = "../../api_news.env"
+        ENV_PATH = "../api_news.env"
         load_dotenv(dotenv_path=ENV_PATH)
         API_KEY = os.getenv("API_KEY")
 
