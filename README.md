@@ -27,7 +27,14 @@ cd datathon-polyfinances-2025
 ```
 
 ### 2. Install dependencies
-Ensure you have Python 3.8+ (or as specified) and optionally Docker.  
+Ensure you have Python 3.11+ (or as specified) and optionally Docker.
+Open the server folden in the terminal and run this command:
+```bash
+pip install -r requirements.txt
+```
+
+Ensure you have npm 11.6+
+Open the react-app 
 ```bash
 pip install -r requirements.txt
 ```
