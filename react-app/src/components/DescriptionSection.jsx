@@ -1,26 +1,21 @@
-// DescriptionSection.jsx
+// src/components/DescriptionSection.jsx
 import React, { useState } from "react";
 import { FaArrowUp, FaArrowDown, FaSearch } from "react-icons/fa";
+import StockBubble from "./StockBubble";
+import mockStocks from "./mocks/monStock";
 import "../styles/DescriptionSection.css";
 
 const DescriptionSection = ({ variations }) => {
-  const mockData = [
-    { ticker: "TSLA", variation: +2.3, reason: "Subsidies for EV manufacturers increase Tesla’s market outlook." },
-    { ticker: "XOM", variation: -1.1, reason: "New carbon regulations pressure oil producers' margins." },
-    { ticker: "AAPL", variation: +0.8, reason: "Strong Q4 demand and favorable export policies." },
-    { ticker: "AMZN", variation: +1.2, reason: "E-commerce spending rises following tax relief in key regions." },
-  ];
-
-  const data = variations?.length ? variations : mockData;
+  const data = variations?.length ? variations : mockStocks;
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStock, setSelectedStock] = useState(null);
 
   const filteredData = data.filter((item) =>
-    item.ticker.toLowerCase().includes(searchQuery.toLowerCase())
+    item.stock_symbol.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="description-section">
-      {/* --- FIXED HEADER --- */}
       <div className="description-header">
         <h2 className="section-title">Market Impact Analysis</h2>
 
@@ -36,25 +31,41 @@ const DescriptionSection = ({ variations }) => {
         </div>
       </div>
 
-      {/* --- SCROLLABLE BODY --- */}
       <div className="description-scroll">
         {filteredData.length > 0 ? (
-          filteredData.map((item, index) => (
-            <div key={index} className="stock-row">
-              <div className="stock-info">
-                <span className="ticker">{item.ticker}</span>
-                <span className={`variation ${item.variation >= 0 ? "positive" : "negative"}`}>
-                  {item.variation >= 0 ? <FaArrowUp /> : <FaArrowDown />}
-                  {Math.abs(item.variation).toFixed(2)}%
-                </span>
+          filteredData.map((item, index) => {
+            const variation = item.impact_estimation?.magnitude ?? 0;
+            const isPositive = variation >= 0;
+            return (
+              <div
+                key={index}
+                className="stock-row"
+                onClick={() => setSelectedStock(item)}
+              >
+                <div className="stock-info">
+                  <span className="ticker">{item.stock_symbol}</span>
+                  <span
+                    className={`variation ${isPositive ? "positive" : "negative"}`}
+                  >
+                    {isPositive ? <FaArrowUp /> : <FaArrowDown />}
+                    {Math.abs(variation * 100).toFixed(2)}%
+                  </span>
+                </div>
+                <p className="reason">{item.summary}</p>
               </div>
-              <p className="reason">{item.reason}</p>
-            </div>
-          ))
+            );
+          })
         ) : (
           <p className="no-results">No results found.</p>
         )}
       </div>
+
+      {selectedStock && (
+        <StockBubble
+          stock={selectedStock}
+          onClose={() => setSelectedStock(null)}
+        />
+      )}
     </div>
   );
 };
