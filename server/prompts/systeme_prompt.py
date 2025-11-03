@@ -71,8 +71,8 @@ system_prompt = (
 '   "recommendations": ["Concise, actionable ideas; if uncertain, return an analytical comment (e.g., \'Further monitoring required.\')"],\n'
 '  "sources": [\n'
 '    {"s3_key": "bucket/key", "snippet": "<=200 chars summarizing relevance"}\n'
-"  ]\n"
-"}\n\n"
+'  ]\n'
+'}\n\n'
 
 "---\n\n"
 "CONSTRAINTS\n"
