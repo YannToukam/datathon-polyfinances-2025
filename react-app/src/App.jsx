@@ -72,7 +72,7 @@ const App = () => {
       if (!res.ok) throw new Error(`Erreur HTTP: ${res.status}`);
       const data = await res.json();
 
-      updateLastMessage(data.response);
+      updateLastMessage(data.response.summary);
 
       // ✅ Nouveau : on récupère les 3 blocs de données
       setSummary(data.response.summary || "No summary available.");
