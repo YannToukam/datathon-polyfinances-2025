@@ -1,5 +1,5 @@
-# Datathon PolyFinances 2025 – Project
-> Repository for the submission to the **Datathon PolyFinances 2025** (organized by PolyFinances at Polytechnique Montréal).  
+# LawLytics
+> Repository for the submission to the **Datathon PolyFinances 2025**.  
 
 ## 🚀 Project Summary
 This project builds a data‑driven solution to a finance‑oriented challenge posed during the datathon: real‑world financial / market / investment / risk problem solved with engineering, data science and AI techniques. The repository contains code, data pipelines, models, a web interface (or dashboard) and deployment instructions.  
